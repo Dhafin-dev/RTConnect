@@ -1,0 +1,215 @@
+' ====================================================================
+' FILE: UML_PLANTUML_REVISED.puml
+' PROYEK: RTConnect (Praktikum Pembangunan Perangkat Lunak - UNAIR)
+' DOSEN: Dr. Indra Kharisma Raharjana, S.Kom., M.T.
+' ====================================================================
+
+' --------------------------------------------------------------------
+' 1. REVISED USE CASE DIAGRAM
+' --------------------------------------------------------------------
+@startuml RTConnect_UseCase_Diagram
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundcorner 8
+
+skinparam actor {
+  BackgroundColor #E8F0FE
+  BorderColor #1A73E8
+}
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #5F6368
+  ArrowColor #202124
+}
+
+actor "Warga" as Warga
+actor "Ketua RT" as RT
+actor "Pengguna" as User
+
+Warga -up-|> User
+RT -up-|> User
+
+rectangle "Sistem RTConnect" {
+
+  package "Modul Autentikasi & Akun" {
+    usecase "UC-01: Registrasi Akun" as UC01
+    usecase "UC-02: Login ke Sistem" as UC02
+    usecase "UC-03: Mengelola Profil Pengguna" as UC03
+  }
+
+  package "Modul Administrasi Surat Pengantar" {
+    usecase "UC-04: Mengajukan Surat Pengantar" as UC04
+    usecase "UC-05: Mengisi Ulang Form (Revisi)" as UC05
+    usecase "UC-06: Mengunduh Dokumen Surat Final (PDF)" as UC06
+    usecase "UC-07: Meninjau Pengajuan Surat" as UC07
+    usecase "UC-08: Menindaklanjuti Pengajuan (Setuju/Revisi/Tolak)" as UC08
+    usecase "UC-09: Mengonfirmasi TTD Digital (QR Code)" as UC09
+    usecase "UC-10: Memperbarui Status Fisik (TTD Basah)" as UC10
+  }
+
+  package "Modul Layanan Informasi & AI Chatbot" {
+    usecase "UC-11: Bertanya ke Chatbot Tanya RT" as UC11
+    usecase "UC-12: Menjawab Eskalasi Pertanyaan Warga" as UC12
+  }
+}
+
+' Relasi Pengguna (Umum)
+User --> UC02
+User --> UC03
+
+' Relasi Warga
+Warga --> UC01
+Warga --> UC04
+Warga --> UC05
+Warga --> UC06
+Warga --> UC11
+
+' Relasi Ketua RT
+RT --> UC07
+RT --> UC08
+RT --> UC09
+RT --> UC10
+RT --> UC12
+
+' Dependensi / Relasi Antar Use Case
+UC08 .left.> UC07 : <<include>>
+UC08 ..> UC09 : <<extend>>\n[Metode = Digital]
+UC08 ..> UC10 : <<extend>>\n[Metode = Basah]
+UC05 ..> UC04 : <<extend>>\n[Status = Perlu Revisi]
+
+@enduml
+
+' --------------------------------------------------------------------
+' 2. REVISED SEQUENCE DIAGRAM - LOGIN
+' --------------------------------------------------------------------
+@startuml RTConnect_Sequence_Login
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Pengguna" as User
+boundary ":HalamanLogin" as UI
+control ":AuthController" as Ctrl
+entity ":User" as EntUser
+control ":SessionManager" as Session
+
+User -> UI : Buka halaman login()
+activate UI
+UI --> User : Tampilkan form login (Email/NIK & Password)
+deactivate UI
+
+User -> UI : Submit kredensial (identity, password)
+activate UI
+UI -> Ctrl : authenticate(identity, password)
+activate Ctrl
+
+Ctrl -> Ctrl : validateInputFormat(identity, password)
+alt Input Tidak Lengkap
+    Ctrl --> UI : return ValidationError("Isian wajib diisi")
+    UI --> User : Tampilkan notifikasi validasi
+else Format Valid
+    Ctrl -> EntUser : findByIdentity(identity)
+    activate EntUser
+    EntUser --> Ctrl : userRecord / null
+    deactivate EntUser
+
+    alt Akun Tidak Ditemukan
+        Ctrl --> UI : return AuthError("Akun tidak terdaftar")
+        UI --> User : Tampilkan pesan error akun tidak ditemukan
+    else Akun Ditemukan
+        Ctrl -> Ctrl : verifyPasswordHash(password, userRecord.password_hash)
+        alt Password Salah
+            Ctrl --> UI : return AuthError("Password salah")
+            UI --> User : Tampilkan pesan peringatan password salah
+        else Password Benar
+            Ctrl -> Session : createSession(userRecord.user_id, userRecord.role)
+            activate Session
+            Session --> Ctrl : sessionToken
+            deactivate Session
+
+            Ctrl -> EntUser : updateLastLogin(userRecord.user_id, timestamp)
+            activate EntUser
+            EntUser --> Ctrl : success
+            deactivate EntUser
+
+            Ctrl --> UI : return Success(sessionToken, userRecord.role)
+            alt Role == "warga"
+                UI --> User : Alihkan ke Dashboard Warga (/warga/beranda)
+            else Role == "rt"
+                UI --> User : Alihkan ke Dashboard Ketua RT (/rt/antrean)
+            end
+        end
+    end
+end
+deactivate Ctrl
+deactivate UI
+
+@enduml
+
+' --------------------------------------------------------------------
+' 3. REVISED SEQUENCE DIAGRAM - CHATBOT TANYA RT (RAG ARSITEKTUR)
+' --------------------------------------------------------------------
+@startuml RTConnect_Sequence_Chatbot_RAG
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Warga" as Warga
+boundary ":HalamanChatbot" as UI
+control ":ChatbotController" as Ctrl
+control ":VectorSearchService" as VectorService
+entity ":KnowledgeChunk" as KB
+control ":LLMService" as LLM
+entity ":ChatLog" as Log
+
+Warga -> UI : Ketik pertanyaan ("Syarat surat domisili?")
+activate UI
+UI -> Ctrl : sendMessage(session_id, user_id, message_text)
+activate Ctrl
+
+Ctrl -> Log : saveUserMessage(session_id, user_id, message_text)
+activate Log
+Log --> Ctrl : message_id
+deactivate Log
+
+Ctrl -> VectorService : searchRelevantChunks(message_text, top_k=3)
+activate VectorService
+VectorService -> VectorService : generateQueryEmbedding(message_text)
+VectorService -> KB : querySimilarVectors(query_vector, similarity_threshold=0.70)
+activate KB
+KB --> VectorService : relevant_chunks, highest_score
+deactivate KB
+VectorService --> Ctrl : result_chunks, highest_score
+deactivate VectorService
+
+alt highest_score >= 0.70 (Informasi Ditemukan di Basis Pengetahuan)
+    Ctrl -> LLM : generateGroundedAnswer(message_text, context_chunks)
+    activate LLM
+    LLM --> Ctrl : bot_reply_text
+    deactivate LLM
+
+    Ctrl -> Log : saveBotMessage(session_id, bot_reply_text, status="terjawab")
+    activate Log
+    Log --> Ctrl : success
+    deactivate Log
+
+    Ctrl --> UI : return ChatResponse(bot_reply_text, sources=result_chunks.metadata)
+    UI --> Warga : Tampilkan balasan chatbot beserta sumber rujukan
+else highest_score < 0.70 (Informasi Tidak Ditemukan / Out-of-Domain)
+    Ctrl -> Ctrl : createEscalationSummary(message_text)
+    Ctrl -> Log : saveBotMessage(session_id, bot_fallback_text, status="eskalasi")
+    activate Log
+    Log --> Ctrl : success
+    deactivate Log
+
+    Ctrl --> UI : return EscalationResponse(fallback_message, wa_link_rt)
+    UI --> Warga : Tampilkan pesan maaf & tombol langsung menuju WhatsApp Ketua RT
+end
+
+deactivate Ctrl
+deactivate UI
+
+@enduml

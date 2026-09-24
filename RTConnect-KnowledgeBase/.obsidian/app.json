@@ -1,0 +1,10 @@
+{
+  "useMarkdownLinks": false,
+  "livePreview": true,
+  "defaultViewMode": "source",
+  "autoPairBrackets": true,
+  "autoPairMarkdown": true,
+  "strictLineBreaks": false,
+  "showLineNumber": true,
+  "readableLineLength": true
+}

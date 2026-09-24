@@ -137,9 +137,9 @@ else Format Valid
 
             Ctrl --> UI : return Success(sessionToken, userRecord.role)
             alt Role == "warga"
-                UI --> User : Alihkan ke Dashboard Warga (/warga/beranda)
+                UI --> User : Alihkan ke Dashboard Warga (/warga/home)
             else Role == "rt"
-                UI --> User : Alihkan ke Dashboard Ketua RT (/rt/antrean)
+                UI --> User : Alihkan ke Dashboard Ketua RT (/rt/pengajuan)
             end
         end
     end
@@ -150,7 +150,76 @@ deactivate UI
 @enduml
 
 ' --------------------------------------------------------------------
-' 3. REVISED SEQUENCE DIAGRAM - CHATBOT TANYA RT (RAG ARSITEKTUR)
+' 3. REVISED SEQUENCE DIAGRAM - REGISTER
+' --------------------------------------------------------------------
+@startuml RTConnect_Sequence_Register
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Warga" as User
+boundary ":HalamanRegister" as UI
+control ":AuthController" as Ctrl
+entity ":User" as EntUser
+control ":StorageService" as Storage
+
+User -> UI : Buka halaman registrasi()
+activate UI
+UI --> User : Tampilkan formulir pendaftaran
+deactivate UI
+
+User -> UI : Input (NIK, Nama, Alamat, NoTelp, Email, Password, BerkasTTD)
+activate UI
+User -> UI : Klik "Daftar Akun"
+UI -> Ctrl : register(registerData, signatureFile)
+activate Ctrl
+
+Ctrl -> Ctrl : validateForm(registerData)
+alt Validasi Gagal (NIK != 16 digit / field kosong)
+    Ctrl --> UI : return ValidationError(pesanError)
+    UI --> User : Tampilkan pesan kesalahan field
+else Format Valid
+    Ctrl -> EntUser : checkNikExists(nik)
+    activate EntUser
+    EntUser --> Ctrl : isNikTaken
+    deactivate EntUser
+
+    alt NIK Sudah Terdaftar
+        Ctrl --> UI : return ConflictError("NIK sudah terdaftar")
+        UI --> User : Tampilkan notifikasi NIK terpakai
+    else NIK Tersedia
+        Ctrl -> EntUser : checkEmailExists(email)
+        activate EntUser
+        EntUser --> Ctrl : isEmailTaken
+        deactivate EntUser
+
+        alt Email Sudah Terdaftar
+            Ctrl --> UI : return ConflictError("Email sudah terdaftar")
+            UI --> User : Tampilkan notifikasi email terpakai
+        else Email Tersedia
+            Ctrl -> Storage : uploadSignature(signatureFile)
+            activate Storage
+            Storage --> Ctrl : signatureUrl
+            deactivate Storage
+
+            Ctrl -> Ctrl : hashPassword(password)
+            Ctrl -> EntUser : createUser(data, signatureUrl, role="warga")
+            activate EntUser
+            EntUser --> Ctrl : newUserId
+            deactivate EntUser
+
+            Ctrl --> UI : return Success("Registrasi berhasil")
+            UI --> User : Tampilkan notifikasi sukses & alihkan ke Halaman Login
+        end
+    end
+end
+deactivate Ctrl
+deactivate UI
+
+@enduml
+
+' --------------------------------------------------------------------
+' 4. REVISED SEQUENCE DIAGRAM - CHATBOT TANYA RT (RAG ARSITEKTUR)
 ' --------------------------------------------------------------------
 @startuml RTConnect_Sequence_Chatbot_RAG
 skinparam defaultFontName "Segoe UI"
@@ -211,5 +280,206 @@ end
 
 deactivate Ctrl
 deactivate UI
+
+@enduml
+
+' --------------------------------------------------------------------
+' 5. REVISED SEQUENCE DIAGRAM - PENGAJUAN SURAT PENGANTAR (E2E)
+' --------------------------------------------------------------------
+@startuml RTConnect_Sequence_Pengajuan_Surat
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Warga" as Warga
+boundary ":FormPengajuan" as UIForm
+control ":SuratController" as Ctrl
+control ":AIGenerator" as AI
+entity ":PengajuanSurat" as EntSurat
+control ":NotificationService" as Notif
+boundary ":DashboardRT" as UIRT
+actor "Ketua RT" as RT
+
+Warga -> UIForm : Isi form (jenis_surat, keperluan, metode_ttd, lampiran)
+activate UIForm
+Warga -> UIForm : Klik "Kirim Pengajuan"
+UIForm -> Ctrl : submitPengajuan(dataPengajuan)
+activate Ctrl
+
+Ctrl -> EntSurat : saveInitialPengajuan(data, status="diajukan")
+activate EntSurat
+EntSurat --> Ctrl : pengajuan_id
+deactivate EntSurat
+
+Ctrl -> AI : generateDraftNarasi(keperluan, profilWarga)
+activate AI
+AI --> Ctrl : drafSuratKonten
+deactivate AI
+
+Ctrl -> EntSurat : updateDraftAI(pengajuan_id, drafSuratKonten)
+Ctrl -> Notif : pushNotification(rt_id, "Pengajuan Baru Masuk")
+Ctrl --> UIForm : return Success("Pengajuan berhasil dikirim")
+UIForm --> Warga : Tampilkan status "Diajukan"
+deactivate UIForm
+
+... Ketua RT Membuka Sistem ...
+
+RT -> UIRT : Buka detail pengajuan(pengajuan_id)
+activate UIRT
+UIRT -> Ctrl : getDetailPengajuan(pengajuan_id)
+Ctrl -> EntSurat : findById(pengajuan_id)
+EntSurat --> Ctrl : detailRecord
+Ctrl --> UIRT : return detailRecord + draf_ai
+UIRT --> RT : Tampilkan data pemohon & draf surat AI
+
+alt RT Menyetujui Pengajuan
+    RT -> UIRT : Klik "Setuju" & input otorisasi
+    UIRT -> Ctrl : approvePengajuan(pengajuan_id, metode_ttd)
+    
+    alt Metode == "Digital"
+        Ctrl -> Ctrl : embedQrVerificationCode(pengajuan_id)
+        Ctrl -> EntSurat : updateStatus(pengajuan_id, "selesai")
+        Ctrl -> Notif : notifyWarga(warga_id, "Surat siap diunduh")
+        Ctrl --> UIRT : return "Surat resmi diterbitkan (Digital)"
+    else Metode == "Basah"
+        Ctrl -> EntSurat : updateStatus(pengajuan_id, "siap_diambil")
+        Ctrl -> Notif : notifyWarga(warga_id, "Surat fisik siap diambil di RT")
+        Ctrl --> UIRT : return "Status diubah menjadi Siap Diambil"
+    end
+else RT Meminta Revisi
+    RT -> UIRT : Klik "Revisi" & isi catatan perbaikan
+    UIRT -> Ctrl : requestRevision(pengajuan_id, catatan)
+    Ctrl -> EntSurat : updateStatus(pengajuan_id, "perlu_revisi", catatan)
+    Ctrl -> Notif : notifyWarga(warga_id, "Pengajuan memerlukan revisi")
+    Ctrl --> UIRT : return "Permintaan revisi terkirim"
+else RT Menolak Pengajuan
+    RT -> UIRT : Klik "Tolak" & isi alasan penolakan
+    UIRT -> Ctrl : rejectPengajuan(pengajuan_id, alasan)
+    Ctrl -> EntSurat : updateStatus(pengajuan_id, "ditolak", alasan)
+    Ctrl -> Notif : notifyWarga(warga_id, "Pengajuan ditolak")
+    Ctrl --> UIRT : return "Pengajuan ditolak"
+end
+
+deactivate Ctrl
+deactivate UIRT
+
+@enduml
+
+' --------------------------------------------------------------------
+' 6. REVISED ACTIVITY DIAGRAM - PENGAJUAN SURAT PENGANTAR
+' --------------------------------------------------------------------
+@startuml RTConnect_Activity_Pengajuan_Surat
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+|Warga|
+start
+:Buka menu "Ajukan Surat";
+:Pilih jenis surat & keperluan;
+:Pilih metode tanda tangan\n(Digital QR / Basah);
+:Unggah dokumen pendukung (opsional);
+:Tekan tombol "Kirim Pengajuan";
+
+|Sistem|
+:Validasi kelengkapan isian;
+if (Isian Lengkap & Valid?) then (Ya)
+  :Simpan pengajuan (Status: "Diajukan");
+  :Formulasi draf surat via Generative AI;
+  :Kirim notifikasi pengajuan baru ke Ketua RT;
+else (Tidak)
+  :Tampilkan pesan perbaikan field;
+  stop
+endif
+
+|Ketua RT|
+:Buka notifikasi & antrean pengajuan;
+:Tinjau data warga, lampiran & draf AI;
+
+if (Keputusan Tindak Lanjut?) then (Setuju)
+  |Sistem|
+  :Tetapkan Nomor Surat Resmi;
+  if (Metode Tanda Tangan?) then (Digital QR)
+    |Ketua RT|
+    :Masukkan PIN Keamanan;
+    |Sistem|
+    :Sematkan QR Code Verifikasi;
+    :Generate berkas PDF final;
+    :Ubah status menjadi "Selesai";
+    |Warga|
+    :Terima notifikasi;
+    :Unduh berkas PDF resmi;
+  else (Basah)
+    |Ketua RT|
+    :Cetak berkas surat fisik;
+    :Tandatangani surat dengan pulpen;
+    :Tekan tombol "Konfirmasi Siap Diambil";
+    |Sistem|
+    :Ubah status menjadi "Siap Diambil";
+    |Warga|
+    :Terima notifikasi jadwal pickup;
+    :Ambil fisik surat di rumah RT;
+  endif
+elseif (Perlu Revisi)
+  |Ketua RT|
+  :Tuliskan catatan revisi spesifik;
+  |Sistem|
+  :Ubah status menjadi "Perlu Revisi";
+  |Warga|
+  :Terima notifikasi revisi;
+  :Perbaiki isian pada form perbaikan;
+  :Kirim ulang pengajuan;
+  detach
+else (Tolak)
+  |Ketua RT|
+  :Tuliskan alasan penolakan;
+  |Sistem|
+  :Ubah status menjadi "Ditolak";
+  |Warga|
+  :Terima notifikasi penolakan;
+endif
+
+|Warga|
+stop
+
+@enduml
+
+' --------------------------------------------------------------------
+' 7. REVISED ACTIVITY DIAGRAM - CHATBOT TANYA RT
+' --------------------------------------------------------------------
+@startuml RTConnect_Activity_Chatbot
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+|Warga|
+start
+:Buka tab layanan "Tanya RT";
+:Ketikkan pertanyaan pada input chat;
+:Tekan tombol kirim pesan;
+
+|Sistem (RAG)|
+:Simpan pesan warga ke ChatLog;
+:Generate vector embedding dari pertanyaan;
+:Hitung Cosine Similarity dengan Knowledge Chunks;
+
+if (Skor Relevansi >= 0.70?) then (Ya - Jawaban Ditemukan)
+  :Ambil potongan dokumen regulasi RT terkait;
+  :Sintesis jawaban akurat melalui LLM;
+  :Tampilkan gelembung jawaban + Badge Sumber;
+  |Warga|
+  :Membaca informasi resmi RT;
+  stop
+else (Tidak - Di Luar Domain)
+  |Sistem (RAG)|
+  :Susun ringkasan pertanyaan warga;
+  :Tampilkan pesan maaf & kartu eskalasi;
+  :Buat tautan WhatsApp otomatis (wa.me);
+  |Warga|
+  :Klik tombol "Hubungi Ketua RT via WhatsApp";
+  :Dialihkan ke aplikasi WhatsApp Ketua RT;
+  :Kirim pesan langsung ke Ketua RT;
+  stop
+endif
 
 @enduml

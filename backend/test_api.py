@@ -24,7 +24,7 @@ def run_api_tests():
 
     # 2. Register Warga Baru (API-001)
     rand_nik = f"351508{random.randint(1000000000, 9999999999)}"
-    rand_email = f"warga_{rand_nik[:6]}@gmail.com"
+    rand_email = f"warga_{rand_nik}@gmail.com"
     res_reg = client.post('/api/v1/auth/register', json={
         'nik': rand_nik,
         'nama_lengkap': 'Warga Uji Coba Baru',

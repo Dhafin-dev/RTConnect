@@ -8,10 +8,11 @@ class ApiClient {
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  ApiClient({String baseUrl = AppConstants.defaultBaseUrl}) {
+  ApiClient({String? baseUrl}) {
+    final effectiveBaseUrl = baseUrl ?? AppConstants.defaultBaseUrl;
     _dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
+        baseUrl: effectiveBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 15),
         headers: {

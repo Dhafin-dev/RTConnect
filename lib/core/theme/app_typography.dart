@@ -51,4 +51,17 @@ class AppTypography {
     height: 20.0 / 14.0,
     color: Colors.white,
   );
+
+  // Convenient Aliases
+  static const TextStyle heading1 = displayLarge;
+  static const TextStyle heading2 = titleLarge;
+  static const TextStyle heading3 = titleMedium;
+  static const TextStyle bodySmall = labelSmall;
+  static const TextStyle caption = labelSmall;
+  static const TextStyle labelBold = TextStyle(
+    fontSize: 13.0,
+    fontWeight: FontWeight.w600,
+    height: 18.0 / 13.0,
+    color: AppColors.textPrimary,
+  );
 }

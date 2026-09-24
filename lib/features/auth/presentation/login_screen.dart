@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../shared/widgets/rt_bottom_nav_bar.dart';
 import '../../../shared/widgets/rt_primary_button.dart';
 import '../../../shared/widgets/rt_text_field.dart';
 import '../domain/auth_validators.dart';
+import 'auth_controller.dart';
 
 /// SCREEN-003: Login Page
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _identifierController = TextEditingController(text: 'dafin@gmail.com');
   final _passwordController = TextEditingController(text: '123456');
-  bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -34,89 +33,94 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final identity = _identifierController.text.trim();
+    final password = _passwordController.text.trim();
 
-    // Simulated Auth matching sequence diagram
-    await Future.delayed(const Duration(milliseconds: 600));
+    final success = await ref.read(authControllerProvider.notifier).login(identity, password);
 
-    final identity = _identifierController.text.trim().toLowerCase();
-    setState(() => _isLoading = false);
-
-    if (identity.contains('rt')) {
-      // Role: Ketua RT
-      if (mounted) context.go(RouteNames.rtQueue);
-    } else {
-      // Role: Warga
-      if (mounted) context.go(RouteNames.wargaHome);
+    if (mounted) {
+      if (success) {
+        final user = ref.read(authControllerProvider).user;
+        if (user?.role == 'rt') {
+          context.go(RouteNames.rtHome);
+        } else {
+          context.go(RouteNames.wargaHome);
+        }
+      } else {
+        final error = ref.read(authControllerProvider).errorMessage ?? 'Login gagal';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text(error),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spaceLG),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Masuk Akun',
-                  style: AppTypography.displayLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                const Icon(
+                  Icons.mark_email_read_outlined,
+                  size: 64,
+                  color: AppColors.primary,
                 ),
-                const SizedBox(height: AppSpacing.spaceXL),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'RTConnect',
+                  style: AppTypography.heading1.copyWith(color: AppColors.primary),
+                ),
+                Text(
+                  'Pelayanan Administrasi RT 032 RW 08',
+                  style: AppTypography.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.xl),
 
                 // Login Form Card
                 Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.spaceLG),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Form(
                       key: _formKey,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (_errorMessage != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.spaceSM),
-                              decoration: BoxDecoration(
-                                color: AppColors.statusRevisi.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusSM),
-                              ),
-                              child: Text(
-                                _errorMessage!,
-                                style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.statusRevisi,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.spaceMD),
-                          ],
+                          Text('Masuk ke Akun', style: AppTypography.heading3),
+                          const SizedBox(height: AppSpacing.md),
                           RTTextField(
                             label: 'Email / NIK',
                             hint: 'Masukkan email atau NIK',
                             controller: _identifierController,
                             validator: (val) =>
                                 AuthValidators.validateRequired(val, 'Email / NIK'),
+                            prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
                           ),
-                          const SizedBox(height: AppSpacing.spaceMD),
+                          const SizedBox(height: AppSpacing.md),
                           RTTextField(
                             label: 'Password',
                             hint: 'Masukkan password',
                             controller: _passwordController,
                             isPassword: true,
                             validator: AuthValidators.validatePassword,
+                            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
                           ),
-                          const SizedBox(height: AppSpacing.spaceLG),
+                          const SizedBox(height: AppSpacing.lg),
                           RTPrimaryButton(
-                            text: 'Masuk',
-                            isLoading: _isLoading,
+                            text: 'Masuk Sekarang',
+                            isLoading: authState.isLoading,
                             onPressed: _handleLogin,
                           ),
                         ],
@@ -125,14 +129,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.spaceMD),
+                const SizedBox(height: AppSpacing.lg),
                 TextButton(
                   onPressed: () => context.push(RouteNames.register),
-                  child: Text(
-                    'Belum punya akun? Registrasi di sini',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.primaryBrand,
-                      fontWeight: FontWeight.w600,
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Belum punya akun warga? ',
+                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      children: [
+                        TextSpan(
+                          text: 'Daftar di sini',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -140,13 +152,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: RTBottomNavBar(
-        currentIndex: 1,
-        onTap: (index) {
-          if (index == 0) context.go(RouteNames.landing);
-          if (index == 1) context.go(RouteNames.landing);
-        },
       ),
     );
   }

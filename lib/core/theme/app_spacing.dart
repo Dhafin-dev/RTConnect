@@ -8,6 +8,13 @@ class AppSpacing {
   static const double spaceXL = 32.0;
   static const double space2XL = 48.0;
 
+  // Short Aliases
+  static const double xs = spaceXS;
+  static const double sm = spaceSM;
+  static const double md = spaceMD;
+  static const double lg = spaceLG;
+  static const double xl = spaceXL;
+
   // Border Radii
   static const double radiusXS = 4.0;
   static const double radiusSM = 8.0;

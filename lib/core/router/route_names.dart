@@ -12,9 +12,11 @@ class RouteNames {
   static const String chatbot = '/chatbot';
 
   // RT Head Routes
+  static const String rtHome = '/rt/home';
   static const String rtQueue = '/rt/pengajuan';
   static const String rtDetail = '/rt/pengajuan/:id';
 
-  // Shared Preview
+  // Shared Preview & Notifications
   static const String pdfPreview = '/surat/preview/:id';
+  static const String notifications = '/notifications';
 }

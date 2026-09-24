@@ -28,6 +28,8 @@ backend/uploads/attachments/*
 # IDE & Editor
 .idea/
 .vscode/
+*.iml
+.metadata
 *.swp
 *.swo
 

@@ -39,6 +39,9 @@ dev_dependencies:
   mockito: ^5.4.4
   build_runner: ^2.4.8
 
+dependency_overrides:
+  syncfusion_pdfviewer_platform_interface: 25.2.7
+
 flutter:
   uses-material-design: true
 

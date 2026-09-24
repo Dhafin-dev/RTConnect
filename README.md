@@ -2,7 +2,7 @@
 
 Aplikasi mobile layanan administrasi publik di tingkat rukun tetangga (**RT 032 RW 08 Griya Taman Asri, Sidoarjo**) berbasis **Flutter & Dart** dengan persistensi data **MySQL**, memadukan:
 1. **Otomatisasi Surat Pengantar Digital:** Perumusan draf narasi birokrasi baku secara otomatis dengan bantuan *Generative AI*.
-2. **Dual-Mode Verification:** Fleksibilitas pengesahan dokumen melalui **Tanda Tangan Digital (QR Code Terverifikasi)** dan **Tanda Tangan Basah Fisik**.
+2. **Dual-Mode Verification:** Fleksibilitas pengesahan dokumen melalui **Tanda Tangan Digital (Tempelan Gambar Resmi)** dan **Tanda Tangan Basah Fisik**.
 3. **Tanya RT (24/7 Citizen AI Assistant):** *Chatbot* interaktif berbasis *Retrieval-Augmented Generation* (RAG) untuk menjawab syarat dan tata tertib RT secara *grounded*, serta fitur eskalasi langsung ke WhatsApp Ketua RT.
 
 ---

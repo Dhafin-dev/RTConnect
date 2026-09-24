@@ -1,19 +1,31 @@
-# Python
+# Project Planning & Knowledge Base (Local Obsidian Vault)
+RTConnect-KnowledgeBase/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+*.lock
+
+# Environment & Secrets
+.env
+*.env.*
+
+# Python / Local Dev
 __pycache__/
 *.py[cod]
 *$py.class
-*.env
 venv/
 env/
 .venv/
 
-# IDE
+# IDE & Editor
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# OS
+# OS Generated
 Thumbs.db
 Desktop.ini
 .DS_Store

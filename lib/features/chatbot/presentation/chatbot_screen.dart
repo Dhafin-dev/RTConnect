@@ -67,7 +67,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Tanya RT 032', style: AppTypography.heading3),
+            const Text('Tanya RT 032', style: AppTypography.heading3),
             Row(
               children: [
                 Container(
@@ -79,7 +79,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Text('AI Assistant Aktif 24/7', style: AppTypography.caption),
+                const Text('AI Assistant Aktif 24/7', style: AppTypography.caption),
               ],
             ),
           ],
@@ -109,7 +109,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                         if (!isUser) ...[
                           CircleAvatar(
                             radius: 16,
-                            backgroundColor: AppColors.primary.withOpacity(0.1),
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                             child: const Icon(Icons.smart_toy_outlined, size: 18, color: AppColors.primary),
                           ),
                           const SizedBox(width: AppSpacing.xs),
@@ -143,7 +143,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.08),
+                                    color: AppColors.primary.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Row(
@@ -189,12 +189,12 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
             ),
 
             if (chatState.isLoading) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
                 child: Row(
                   children: [
-                    const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                    const SizedBox(width: AppSpacing.xs),
+                    SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(width: AppSpacing.xs),
                     Text('Tanya RT sedang mencari jawaban di basis data...', style: AppTypography.caption),
                   ],
                 ),
@@ -204,7 +204,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
             // Input Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.surface,
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),

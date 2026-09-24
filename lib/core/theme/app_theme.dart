@@ -14,7 +14,6 @@ class AppTheme {
         primary: AppColors.primaryBrand,
         secondary: AppColors.secondaryDark,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.statusRevisi,
       ),
       appBarTheme: const AppBarTheme(
@@ -24,7 +23,7 @@ class AppTheme {
         centerTitle: false,
         titleTextStyle: AppTypography.titleLarge,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(

@@ -17,33 +17,33 @@ class RTStatusBadge extends StatelessWidget {
 
     switch (status.toLowerCase()) {
       case 'diajukan':
-        bg = AppColors.statusDiajukan.withOpacity(0.15);
+        bg = AppColors.statusDiajukan.withValues(alpha: 0.15);
         fg = const Color(0xFFB45309); // Amber 700
         label = 'Diajukan';
         break;
       case 'perlu_revisi':
-        bg = AppColors.statusRevisi.withOpacity(0.15);
+        bg = AppColors.statusRevisi.withValues(alpha: 0.15);
         fg = AppColors.statusRevisi;
         label = 'Perlu Revisi';
         break;
       case 'disetujui':
-        bg = AppColors.statusDisetujui.withOpacity(0.15);
+        bg = AppColors.statusDisetujui.withValues(alpha: 0.15);
         fg = AppColors.statusDisetujui;
         label = 'Disetujui';
         break;
       case 'siap_diambil':
-        bg = AppColors.statusSiapDiambil.withOpacity(0.15);
+        bg = AppColors.statusSiapDiambil.withValues(alpha: 0.15);
         fg = AppColors.statusSiapDiambil;
         label = 'Siap Diambil';
         break;
       case 'selesai':
-        bg = AppColors.statusSelesai.withOpacity(0.15);
+        bg = AppColors.statusSelesai.withValues(alpha: 0.15);
         fg = AppColors.statusSelesai;
         label = 'Selesai';
         break;
       case 'ditolak':
       default:
-        bg = AppColors.statusDitolak.withOpacity(0.15);
+        bg = AppColors.statusDitolak.withValues(alpha: 0.15);
         fg = AppColors.statusDitolak;
         label = 'Ditolak';
         break;

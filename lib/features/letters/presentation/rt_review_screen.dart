@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../shared/widgets/rt_primary_button.dart';
 import '../../../shared/widgets/rt_status_badge.dart';
 import 'letter_controller.dart';
 
@@ -31,15 +30,15 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
 
   void _showDigitalSignDialog(int id, String namaWarga, String namaSurat) {
     _pinController.clear();
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
+          title: const Row(
             children: [
-              const Icon(Icons.draw, color: AppColors.primary),
-              const SizedBox(width: AppSpacing.xs),
+              Icon(Icons.draw, color: AppColors.primary),
+              SizedBox(width: AppSpacing.xs),
               Text('Otorisasi TTD Digital', style: AppTypography.heading3),
             ],
           ),
@@ -52,7 +51,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
                 style: AppTypography.bodySmall,
               ),
               const SizedBox(height: AppSpacing.sm),
-              Text(
+              const Text(
                 'Sistem akan menyematkan pindaian tanda tangan digital resmi Ketua RT ke dokumen PDF (UC-09).',
                 style: AppTypography.caption,
               ),
@@ -72,30 +71,29 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogCtx),
               child: const Text('Batal'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               onPressed: () async {
                 final pin = _pinController.text.trim();
-                Navigator.pop(context);
+                Navigator.pop(dialogCtx);
                 final success = await ref.read(letterSubmitControllerProvider.notifier).signDigital(id, pin);
-                if (mounted) {
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: AppColors.success,
-                        content: Text('Tanda tangan digital berhasil disematkan! Dokumen PDF resmi telah terbit.'),
-                      ),
-                    );
-                    context.push('/surat/preview/$id');
-                  } else {
-                    final err = ref.read(letterSubmitControllerProvider).errorMessage ?? 'Gagal menandatangani';
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(backgroundColor: AppColors.error, content: Text(err)),
-                    );
-                  }
+                if (!mounted) return;
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('Tanda tangan digital berhasil disematkan! Dokumen PDF resmi telah terbit.'),
+                    ),
+                  );
+                  unawaited(context.push('/surat/preview/$id'));
+                } else {
+                  final err = ref.read(letterSubmitControllerProvider).errorMessage ?? 'Gagal menandatangani';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(backgroundColor: AppColors.error, content: Text(err)),
+                  );
                 }
               },
               child: const Text('Sahkan Dokumen', style: TextStyle(color: Colors.white)),
@@ -108,11 +106,11 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
 
   void _showRevisionDialog(int id) {
     _noteController.clear();
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         return AlertDialog(
-          title: Text('Minta Perbaikan (Revisi)', style: AppTypography.heading3),
+          title: const Text('Minta Perbaikan (Revisi)', style: AppTypography.heading3),
           content: TextField(
             controller: _noteController,
             maxLines: 4,
@@ -122,15 +120,16 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Batal')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800),
               onPressed: () async {
                 final note = _noteController.text.trim();
                 if (note.isEmpty) return;
-                Navigator.pop(context);
+                Navigator.pop(dialogCtx);
                 final success = await ref.read(letterSubmitControllerProvider.notifier).submitDecision(id, 'revise', note);
-                if (mounted && success) {
+                if (!mounted) return;
+                if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(backgroundColor: Colors.amber, content: Text('Permintaan revisi telah dikirim ke warga')),
                   );
@@ -146,11 +145,11 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
 
   void _showRejectDialog(int id) {
     _noteController.clear();
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         return AlertDialog(
-          title: Text('Tolak Permohonan Surat', style: AppTypography.heading3),
+          title: const Text('Tolak Permohonan Surat', style: AppTypography.heading3),
           content: TextField(
             controller: _noteController,
             maxLines: 4,
@@ -160,15 +159,16 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Batal')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
               onPressed: () async {
                 final reason = _noteController.text.trim();
                 if (reason.isEmpty) return;
-                Navigator.pop(context);
+                Navigator.pop(dialogCtx);
                 final success = await ref.read(letterSubmitControllerProvider.notifier).submitDecision(id, 'reject', reason);
-                if (mounted && success) {
+                if (!mounted) return;
+                if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(backgroundColor: Colors.red, content: Text('Permohonan surat telah ditolak')),
                   );
@@ -189,7 +189,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Antrean Surat Masuk RT', style: AppTypography.heading3),
+        title: const Text('Antrean Surat Masuk RT', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -223,10 +223,10 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
+                    Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
                     const SizedBox(height: AppSpacing.sm),
-                    Text('Antrean Masuk Kosong', style: AppTypography.heading3),
-                    Text('Saat ini tidak ada permohonan surat yang menunggu tindakan.', style: AppTypography.caption),
+                    const Text('Antrean Masuk Kosong', style: AppTypography.heading3),
+                    const Text('Saat ini tidak ada permohonan surat yang menunggu tindakan.', style: AppTypography.caption),
                   ],
                 ),
               );

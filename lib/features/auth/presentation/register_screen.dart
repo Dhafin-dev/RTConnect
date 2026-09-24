@@ -97,7 +97,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Pendaftaran Warga', style: AppTypography.heading3),
+        title: const Text('Pendaftaran Warga', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -114,12 +114,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
+                const Text(
                   'Buat Akun RTConnect',
                   style: AppTypography.heading2,
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Text(
+                const Text(
                   'Daftarkan diri Anda sebagai warga RT 032 RW 08 Griya Taman Asri.',
                   style: AppTypography.bodySmall,
                 ),
@@ -200,15 +200,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(Icons.draw_outlined, color: AppColors.primary),
-                          const SizedBox(width: AppSpacing.xs),
+                          Icon(Icons.draw_outlined, color: AppColors.primary),
+                          SizedBox(width: AppSpacing.xs),
                           Text('Pindaian Tanda Tangan (Opsional)', style: AppTypography.labelBold),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      const Text(
                         'Unggah foto tanda tangan digital Anda di atas kertas putih bersih (PNG/JPG)',
                         style: AppTypography.caption,
                       ),
@@ -240,7 +240,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Sudah memiliki akun? ', style: AppTypography.bodySmall),
+                    const Text('Sudah memiliki akun? ', style: AppTypography.bodySmall),
                     GestureDetector(
                       onTap: () => context.go(RouteNames.login),
                       child: Text(

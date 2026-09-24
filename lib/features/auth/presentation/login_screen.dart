@@ -81,7 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'RTConnect',
                   style: AppTypography.heading1.copyWith(color: AppColors.primary),
                 ),
-                Text(
+                const Text(
                   'Pelayanan Administrasi RT 032 RW 08',
                   style: AppTypography.bodySmall,
                 ),
@@ -98,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text('Masuk ke Akun', style: AppTypography.heading3),
+                          const Text('Masuk ke Akun', style: AppTypography.heading3),
                           const SizedBox(height: AppSpacing.md),
                           RTTextField(
                             label: 'Email / NIK',

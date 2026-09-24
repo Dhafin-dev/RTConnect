@@ -25,7 +25,7 @@ class _LetterHistoryScreenState extends ConsumerState<LetterHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Riwayat Pengajuan Surat', style: AppTypography.heading3),
+        title: const Text('Riwayat Pengajuan Surat', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -81,10 +81,10 @@ class _LetterHistoryScreenState extends ConsumerState<LetterHistoryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inbox_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
+                          Icon(Icons.inbox_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
                           const SizedBox(height: AppSpacing.sm),
-                          Text('Belum ada riwayat pengajuan', style: AppTypography.heading3),
-                          Text('Pengajuan surat yang Anda buat akan muncul di sini.', style: AppTypography.caption),
+                          const Text('Belum ada riwayat pengajuan', style: AppTypography.heading3),
+                          const Text('Pengajuan surat yang Anda buat akan muncul di sini.', style: AppTypography.caption),
                         ],
                       ),
                     );
@@ -182,7 +182,7 @@ class _LetterHistoryScreenState extends ConsumerState<LetterHistoryScreen> {
       child: FilterChip(
         label: Text(label),
         selected: isSelected,
-        selectedColor: AppColors.primary.withOpacity(0.2),
+        selectedColor: AppColors.primary.withValues(alpha: 0.2),
         checkmarkColor: AppColors.primary,
         onSelected: (_) => setState(() => _selectedFilter = value),
       ),

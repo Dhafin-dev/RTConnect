@@ -16,7 +16,7 @@ class AuthRepository {
         _storage = storage ?? const FlutterSecureStorage();
 
   Future<UserEntity> login(String identity, String password) async {
-    final response = await _apiClient.dio.post(
+    final response = await _apiClient.dio.post<Map<String, dynamic>>(
       ApiEndpoints.login,
       data: {
         'identity': identity,
@@ -24,7 +24,7 @@ class AuthRepository {
       },
     );
 
-    final data = response.data['data'] as Map<String, dynamic>;
+    final data = response.data!['data'] as Map<String, dynamic>;
     final token = data['token'] as String;
     final userMap = data['user'] as Map<String, dynamic>;
     final user = UserEntity.fromJson(userMap);
@@ -72,7 +72,7 @@ class AuthRepository {
       };
     }
 
-    await _apiClient.dio.post(
+    await _apiClient.dio.post<Map<String, dynamic>>(
       ApiEndpoints.register,
       data: payload,
     );
@@ -83,8 +83,8 @@ class AuthRepository {
     if (token == null) return null;
 
     try {
-      final response = await _apiClient.dio.get(ApiEndpoints.me);
-      final data = response.data['data'] as Map<String, dynamic>;
+      final response = await _apiClient.dio.get<Map<String, dynamic>>(ApiEndpoints.me);
+      final data = response.data!['data'] as Map<String, dynamic>;
       return UserEntity.fromJson(data);
     } catch (_) {
       return null;

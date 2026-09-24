@@ -28,16 +28,16 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
 
   void _showRevisionDialog(String currentKeperluan) {
     _resubmitController.text = currentKeperluan;
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
-          title: Text('Perbaiki Pengajuan', style: AppTypography.heading3),
+          title: const Text('Perbaiki Pengajuan', style: AppTypography.heading3),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Perbarui rincian keperluan surat sesuai catatan dari Ketua RT:', style: AppTypography.caption),
+              const Text('Perbarui rincian keperluan surat sesuai catatan dari Ketua RT:', style: AppTypography.caption),
               const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: _resubmitController,
@@ -51,31 +51,29 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Batal'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               onPressed: () async {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 try {
                   final repo = ref.read(letterRepositoryProvider);
                   await repo.resubmitLetter(widget.applicationId, _resubmitController.text.trim());
-                  ref.refresh(applicationDetailProvider(widget.applicationId));
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: AppColors.success,
-                        content: Text('Pengajuan berhasil diperbarui dan dikirim ulang ke Ketua RT'),
-                      ),
-                    );
-                  }
+                  ref.invalidate(applicationDetailProvider(widget.applicationId));
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('Pengajuan berhasil diperbarui dan dikirim ulang ke Ketua RT'),
+                    ),
+                  );
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(backgroundColor: AppColors.error, content: Text('Gagal memperbarui: $e')),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(backgroundColor: AppColors.error, content: Text('Gagal memperbarui: $e')),
+                  );
                 }
               },
               child: const Text('Kirim Ulang', style: TextStyle(color: Colors.white)),
@@ -93,7 +91,7 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Rincian Surat', style: AppTypography.heading3),
+        title: const Text('Rincian Surat', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -254,7 +252,7 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
                   ],
 
                   // Data Pemohon
-                  Text('Data Pemohon', style: AppTypography.labelBold),
+                  const Text('Data Pemohon', style: AppTypography.labelBold),
                   const SizedBox(height: AppSpacing.xs),
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
@@ -281,10 +279,10 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
 
                   // Draf Narasi AI
                   if (drafAi != null && drafAi.isNotEmpty) ...[
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
-                        const SizedBox(width: AppSpacing.xs),
+                        Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
+                        SizedBox(width: AppSpacing.xs),
                         Text('Draf Narasi Surat (Hasil Formulasi AI)', style: AppTypography.labelBold),
                       ],
                     ),
@@ -292,9 +290,9 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.04),
+                        color: AppColors.primary.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
                       ),
                       child: Text(
                         drafAi,

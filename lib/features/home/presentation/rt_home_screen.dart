@@ -26,7 +26,7 @@ class RTHomeScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('RTConnect — Panel RT', style: AppTypography.heading3.copyWith(color: AppColors.primary)),
-            Text('RT 032 RW 08 Griya Taman Asri', style: AppTypography.caption),
+            const Text('RT 032 RW 08 Griya Taman Asri', style: AppTypography.caption),
           ],
         ),
         backgroundColor: AppColors.surface,
@@ -121,7 +121,7 @@ class RTHomeScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xl),
 
               // Menu Cepat Tindakan
-              Text('Tindakan Administrasi', style: AppTypography.heading3),
+              const Text('Tindakan Administrasi', style: AppTypography.heading3),
               const SizedBox(height: AppSpacing.md),
               Card(
                 elevation: 1,
@@ -131,8 +131,8 @@ class RTHomeScreen extends ConsumerWidget {
                     backgroundColor: Color(0xFFEFF6FF),
                     child: Icon(Icons.rate_review_outlined, color: AppColors.primary),
                   ),
-                  title: Text('Buka Antrean Verifikasi Surat', style: AppTypography.labelBold),
-                  subtitle: Text('Tinjau draf AI, sahkan TTD digital, atau setujui TTD basah.', style: AppTypography.caption),
+                  title: const Text('Buka Antrean Verifikasi Surat', style: AppTypography.labelBold),
+                  subtitle: const Text('Tinjau draf AI, sahkan TTD digital, atau setujui TTD basah.', style: AppTypography.caption),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () => context.push(RouteNames.rtQueue),
                 ),
@@ -146,8 +146,8 @@ class RTHomeScreen extends ConsumerWidget {
                     backgroundColor: Color(0xFFF0FDF4),
                     child: Icon(Icons.chat_bubble_outline, color: AppColors.success),
                   ),
-                  title: Text('Uji Coba Tanya RT (RAG)', style: AppTypography.labelBold),
-                  subtitle: Text('Pantau kecocokan data peraturan RT dan simulasi asisten AI.', style: AppTypography.caption),
+                  title: const Text('Uji Coba Tanya RT (RAG)', style: AppTypography.labelBold),
+                  subtitle: const Text('Pantau kecocokan data peraturan RT dan simulasi asisten AI.', style: AppTypography.caption),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () => context.push(RouteNames.chatbot),
                 ),
@@ -168,9 +168,9 @@ class RTHomeScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

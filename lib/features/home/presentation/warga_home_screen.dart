@@ -27,7 +27,7 @@ class WargaHomeScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('RTConnect', style: AppTypography.heading2.copyWith(color: AppColors.primary)),
-            Text('RT 032 RW 08 Griya Taman Asri', style: AppTypography.caption),
+            const Text('RT 032 RW 08 Griya Taman Asri', style: AppTypography.caption),
           ],
         ),
         backgroundColor: AppColors.surface,
@@ -79,7 +79,7 @@ class WargaHomeScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.lg),
 
               // Menu Layanan Utama
-              Text('Menu Layanan', style: AppTypography.heading3),
+              const Text('Menu Layanan', style: AppTypography.heading3),
               const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
@@ -87,7 +87,7 @@ class WargaHomeScreen extends ConsumerWidget {
                     child: _buildServiceCard(
                       context,
                       icon: Icons.note_add_outlined,
-                      title: 'Ajukan Surat',
+                       title: 'Ajukan Surat',
                       desc: 'Buat surat pengantar baru',
                       color: AppColors.primary,
                       onTap: () => context.push(RouteNames.wargaPengajuanBaru),
@@ -128,7 +128,7 @@ class WargaHomeScreen extends ConsumerWidget {
                       desc: 'Informasi kas lingkungan',
                       color: Colors.deepOrange,
                       onTap: () {
-                        showDialog(
+                        showDialog<void>(
                           context: context,
                           builder: (c) => AlertDialog(
                             title: const Text('Iuran Lingkungan RT 032'),
@@ -151,7 +151,7 @@ class WargaHomeScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Pengajuan Surat Terkini', style: AppTypography.heading3),
+                  const Text('Pengajuan Surat Terkini', style: AppTypography.heading3),
                   TextButton(
                     onPressed: () => context.push(RouteNames.wargaPengajuan),
                     child: const Text('Lihat Semua'),
@@ -171,7 +171,7 @@ class WargaHomeScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Center(
+                      child: const Center(
                         child: Text('Belum ada permohonan surat aktif.', style: AppTypography.bodySmall),
                       ),
                     );
@@ -232,7 +232,7 @@ class WargaHomeScreen extends ConsumerWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: color.withOpacity(0.12),
+                backgroundColor: color.withValues(alpha: 0.12),
                 child: Icon(icon, color: color, size: 22),
               ),
               const SizedBox(height: AppSpacing.sm),

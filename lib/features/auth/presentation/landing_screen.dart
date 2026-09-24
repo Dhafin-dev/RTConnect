@@ -27,7 +27,7 @@ class LandingScreen extends StatelessWidget {
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -57,7 +57,7 @@ class LandingScreen extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                alignment: WrapWrapAlignment.center,
+                alignment: WrapAlignment.center,
                 children: [
                   _buildFeatureBadge(Icons.auto_awesome, 'AI Draft Narasi'),
                   _buildFeatureBadge(Icons.draw, 'TTD Digital Sah'),

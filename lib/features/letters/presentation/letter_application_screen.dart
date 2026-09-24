@@ -94,7 +94,7 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Pengajuan Surat Pengantar', style: AppTypography.heading3),
+        title: const Text('Pengajuan Surat Pengantar', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -115,9 +115,9 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -135,14 +135,14 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                 const SizedBox(height: AppSpacing.lg),
 
                 // Pilih Jenis Surat
-                Text('Pilih Jenis Surat', style: AppTypography.labelBold),
+                const Text('Pilih Jenis Surat', style: AppTypography.labelBold),
                 const SizedBox(height: AppSpacing.xs),
                 letterTypesAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (err, _) => Text('Gagal memuat jenis surat: $err', style: const TextStyle(color: AppColors.error)),
                   data: (types) {
                     return DropdownButtonFormField<int>(
-                      value: _selectedJenisSuratId,
+                      initialValue: _selectedJenisSuratId,
                       decoration: InputDecoration(
                         hintText: 'Pilih jenis surat yang diajukan',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -180,7 +180,7 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Persyaratan Berkas:', style: AppTypography.labelBold),
+                        const Text('Persyaratan Berkas:', style: AppTypography.labelBold),
                         const SizedBox(height: 4),
                         Text(_selectedSyarat!, style: AppTypography.bodySmall),
                       ],
@@ -200,7 +200,7 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                 const SizedBox(height: AppSpacing.lg),
 
                 // Pilihan Metode Tanda Tangan
-                Text('Metode Pengesahan Tanda Tangan', style: AppTypography.labelBold),
+                const Text('Metode Pengesahan Tanda Tangan', style: AppTypography.labelBold),
                 const SizedBox(height: AppSpacing.xs),
                 Container(
                   decoration: BoxDecoration(
@@ -208,32 +208,36 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: Column(
-                    children: [
-                      RadioListTile<String>(
-                        value: 'digital',
-                        groupValue: _metodeTtd,
-                        activeColor: AppColors.primary,
-                        title: Text('Tanda Tangan Digital (Rekomendasi)', style: AppTypography.labelBold),
-                        subtitle: Text(
-                          'Surat disahkan langsung dengan tempelan gambar tanda tangan resmi Ketua RT dan dapat langsung diunduh (PDF).',
-                          style: AppTypography.caption,
+                  child: RadioGroup<String>(
+                    groupValue: _metodeTtd,
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _metodeTtd = val);
+                      }
+                    },
+                    child: const Column(
+                      children: [
+                        RadioListTile<String>(
+                          value: 'digital',
+                          activeColor: AppColors.primary,
+                          title: Text('Tanda Tangan Digital (Rekomendasi)', style: AppTypography.labelBold),
+                          subtitle: Text(
+                            'Surat disahkan langsung dengan tempelan gambar tanda tangan resmi Ketua RT dan dapat langsung diunduh (PDF).',
+                            style: AppTypography.caption,
+                          ),
                         ),
-                        onChanged: (val) => setState(() => _metodeTtd = val!),
-                      ),
-                      const Divider(height: 1),
-                      RadioListTile<String>(
-                        value: 'basah',
-                        groupValue: _metodeTtd,
-                        activeColor: AppColors.primary,
-                        title: Text('Tanda Tangan Basah', style: AppTypography.labelBold),
-                        subtitle: Text(
-                          'Surat fisik dicetak dan ditandatangani manual oleh Ketua RT. Pengambilan langsung di kediaman RT.',
-                          style: AppTypography.caption,
+                        Divider(height: 1),
+                        RadioListTile<String>(
+                          value: 'basah',
+                          activeColor: AppColors.primary,
+                          title: Text('Tanda Tangan Basah', style: AppTypography.labelBold),
+                          subtitle: Text(
+                            'Surat fisik dicetak dan ditandatangani manual oleh Ketua RT. Pengambilan langsung di kediaman RT.',
+                            style: AppTypography.caption,
+                          ),
                         ),
-                        onChanged: (val) => setState(() => _metodeTtd = val!),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -249,9 +253,9 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Berkas Lampiran Pendukung (Opsional)', style: AppTypography.labelBold),
+                      const Text('Berkas Lampiran Pendukung (Opsional)', style: AppTypography.labelBold),
                       const SizedBox(height: 4),
-                      Text('Unggah foto KTP/KK/Surat Terkait (PDF/PNG/JPG maks 5MB)', style: AppTypography.caption),
+                      const Text('Unggah foto KTP/KK/Surat Terkait (PDF/PNG/JPG maks 5MB)', style: AppTypography.caption),
                       const SizedBox(height: AppSpacing.sm),
                       OutlinedButton.icon(
                         onPressed: _pickAttachment,

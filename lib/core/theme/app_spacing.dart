@@ -27,4 +27,5 @@ class AppSpacing {
   static const double buttonHeight = 48.0;
   static const double inputHeight = 48.0;
   static const double bottomNavHeight = 64.0;
+  static const double avatarDiameter = 56.0;
 }

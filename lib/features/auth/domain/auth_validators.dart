@@ -14,6 +14,23 @@ class AuthValidators {
     return null;
   }
 
+  /// Alias for backward compatibility
+  static String? validateNik(String? value) => validateNIK(value);
+
+  static String? validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nomor telepon wajib diisi';
+    }
+    final trimmed = value.trim();
+    if (!RegExp(r'^\d+$').hasMatch(trimmed)) {
+      return 'Nomor telepon harus berupa angka';
+    }
+    if (trimmed.length < 10 || trimmed.length > 15) {
+      return 'Nomor telepon minimal 10 dan maksimal 15 digit';
+    }
+    return null;
+  }
+
   static String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Email wajib diisi';

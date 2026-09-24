@@ -10,20 +10,20 @@ class AppException implements Exception {
 }
 
 class NetworkException extends AppException {
-  const NetworkException([String message = 'Koneksi jaringan terputus. Silakan coba lagi.'])
-      : super(message, code: 'NETWORK_ERROR');
+  const NetworkException([super.message = 'Koneksi jaringan terputus. Silakan coba lagi.'])
+      : super(code: 'NETWORK_ERROR');
 }
 
 class AuthException extends AppException {
-  const AuthException([String message = 'Email/NIK atau password salah.'])
-      : super(message, code: 'AUTH_ERROR');
+  const AuthException([super.message = 'Email/NIK atau password salah.'])
+      : super(code: 'AUTH_ERROR');
 }
 
 class ValidationException extends AppException {
-  const ValidationException(String message) : super(message, code: 'VALIDATION_ERROR');
+  const ValidationException(super.message) : super(code: 'VALIDATION_ERROR');
 }
 
 class ServerException extends AppException {
-  const ServerException([String message = 'Terjadi kesalahan pada server.'])
-      : super(message, code: 'SERVER_ERROR');
+  const ServerException([super.message = 'Terjadi kesalahan pada server.'])
+      : super(code: 'SERVER_ERROR');
 }

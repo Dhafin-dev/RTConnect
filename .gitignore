@@ -1,8 +1,13 @@
+# Project Planning & Knowledge Base (Local Obsidian Vault)
+RTConnect-KnowledgeBase/
+
 # Flutter / Dart
 .dart_tool/
 .packages
 build/
 *.lock
+.flutter-plugins
+.flutter-plugins-dependencies
 
 # Environment & Secrets
 .env
@@ -15,6 +20,10 @@ __pycache__/
 venv/
 env/
 .venv/
+backend/uploads/generated_letters/*.pdf
+backend/uploads/attachments/*
+!backend/uploads/signatures/*.png
+
 
 # IDE & Editor
 .idea/

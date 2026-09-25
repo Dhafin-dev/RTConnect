@@ -25,6 +25,13 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final customUrl = await _storage.read(key: AppConstants.keyCustomBaseUrl);
+          if (customUrl != null && customUrl.isNotEmpty) {
+            options.baseUrl = customUrl;
+          } else {
+            options.baseUrl = AppConstants.defaultBaseUrl;
+          }
+
           final token = await _storage.read(key: AppConstants.keyAuthToken);
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';

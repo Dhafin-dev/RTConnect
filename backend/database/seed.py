@@ -1,6 +1,7 @@
-import os
-import bcrypt
-from db import execute, query_one
+try:
+    from database.db import execute, query_one
+except ImportError:
+    from db import execute, query_one
 
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()

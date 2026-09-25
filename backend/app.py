@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
-from database.db import query_one
+from database.db import query_one, init_database_if_needed
 
 # Import Route Blueprints
 from routes.auth_routes import auth_bp
@@ -25,6 +25,9 @@ def create_app():
     # Pastikan folder penyimpanan tersedia
     for folder in [Config.UPLOAD_FOLDER, Config.SIGNATURES_FOLDER, Config.ATTACHMENTS_FOLDER, Config.LETTERS_FOLDER]:
         os.makedirs(folder, exist_ok=True)
+
+    # Otomatis inisialisasi tabel basis data jika belum ada
+    init_database_if_needed()
 
     # Registrasi Blueprints
     app.register_blueprint(auth_bp)
@@ -96,8 +99,10 @@ def create_app():
 
     return app
 
+# Expose app instance untuk WSGI / Gunicorn (Railway, Render, dll)
+app = create_app()
+
 if __name__ == '__main__':
-    application = create_app()
     port = int(os.getenv('PORT', 5000))
     print(f"[*] Menjalankan RTConnect Backend di http://127.0.0.1:{port}")
-    application.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)

@@ -1,0 +1,96 @@
+@startuml RTConnect_Activity_Pengajuan_Surat
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+|#F8F9FA|Warga|
+start
+:Membuka menu "Ajukan Surat Pengantar";
+:Memilih jenis surat pengantar;
+:Mengisi keperluan/tujuan pengajuan surat;
+:Memilih metode tanda tangan (Digital / Basah);
+:Mengunggah dokumen pendukung (opsional);
+:Menekan tombol "Kirim Pengajuan";
+
+|#EDF2F7|Sistem RTConnect|
+:Memvalidasi isian dan format berkas lampiran;
+
+if (Data pengajuan lengkap & valid?) then (Tidak)
+  :Menampilkan pesan kesalahan pada formulir;
+  |Warga|
+  :Memperbaiki isian data formulir;
+  detach
+else (Ya)
+  |Sistem RTConnect|
+  :Menyimpan rekor pengajuan dengan status "Diajukan";
+  :Merumuskan draf narasi surat melalui Generative AI;
+  :Menyimpan konten draf AI pada basis data;
+  :Mengirimkan notifikasi pengajuan baru ke Ketua RT;
+
+  |#E8F0FE|Ketua RT|
+  :Menerima notifikasi & membuka antrean pengajuan;
+  :Membuka detail permohonan pemohon;
+  :Meninjau kelengkapan berkas warga dan draf AI;
+
+  if (Keputusan tindak lanjut Ketua RT?) then (Tolak)
+    :Mengisi alasan penolakan permohonan;
+    :Menekan tombol "Tolak Pengajuan";
+    |Sistem RTConnect|
+    :Memperbarui status pengajuan menjadi "Ditolak";
+    :Mengirim notifikasi penolakan beserta alasan ke warga;
+    |Warga|
+    :Menerima notifikasi pengajuan ditolak;
+    stop
+
+  elseif (Minta Revisi)
+    |Ketua RT|
+    :Mengisi catatan poin-poin yang perlu direvisi;
+    :Menekan tombol "Minta Revisi";
+    |Sistem RTConnect|
+    :Memperbarui status pengajuan menjadi "Perlu Revisi";
+    :Mengirimkan notifikasi permintaan revisi ke warga;
+    |Warga|
+    :Menerima notifikasi revisi;
+    :Membuka form pengajuan perbaikan;
+    :Memperbarui data atau mengunggah ulang lampiran;
+    :Menekan tombol "Kirim Ulang Revisi";
+    detach
+
+  else (Setujui)
+    |Sistem RTConnect|
+    :Menerbitkan nomor surat resmi RT 032;
+    :Memperbarui status pengajuan menjadi "Disetujui";
+
+    |Ketua RT|
+    :Memeriksa metode tanda tangan yang diajukan;
+
+    if (Pilihan metode tanda tangan?) then (Digital (Tempelan Gambar))
+      :Memasukkan PIN otorisasi tanda tangan digital;
+      :Menekan tombol "Konfirmasi TTD Digital";
+      |Sistem RTConnect|
+      :Menyematkan stempel gambar TTD resmi Ketua RT;
+      :Menghasilkan dokumen PDF surat pengantar final;
+      :Memperbarui status pengajuan menjadi "Selesai";
+      :Mengirimkan notifikasi surat selesai diterbitkan ke warga;
+      |Warga|
+      :Menerima notifikasi dokumen selesai;
+      :Membuka riwayat pengajuan & mengunduh berkas PDF;
+      stop
+
+    else (Basah (Fisik))
+      |Ketua RT|
+      :Mencetak draf berkas surat fisik;
+      :Menandatangani surat dengan pulpen dan stempel basah RT;
+      :Menekan tombol "Konfirmasi Siap Diambil" di sistem;
+      |Sistem RTConnect|
+      :Memperbarui status pengajuan menjadi "Siap Diambil";
+      :Mengirimkan notifikasi pengambilan surat fisik ke warga;
+      |Warga|
+      :Menerima notifikasi jadwal pengambilan surat;
+      :Mendatangi rumah Ketua RT dan mengambil surat fisik asli;
+      stop
+    endif
+  endif
+endif
+
+@enduml

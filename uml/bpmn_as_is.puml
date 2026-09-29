@@ -1,0 +1,55 @@
+@startuml BPMN_AS_IS_RTConnect
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+|#F8F9FA|Warga|
+start
+:<b>Warga Membutuhkan Surat Pengantar</b>;
+:<b>Mengisi Formulir Permohonan / Chat WA</b>
+<i>[Input: KTP/Biodata Diri, Keperluan Surat]</i>
+<i>[Output: Lembar Permohonan / Pesan Teks WA]</i>;
+
+|#E8F0FE|Ketua RT|
+:<b>Menerima Berkas Permohonan</b>
+<i>[Input: Formulir Fisik / Pesan Teks WA Warga]</i>
+<i>[Output: Data Pemohon Terkumpul]</i>;
+
+:<b>Memeriksa Kelengkapan Berkas & Tujuan</b>
+<i>[Input: Data Pemohon, Persyaratan Berkas]</i>
+<i>[Output: Status Kelayakan Berkas]</i>;
+
+if (<b>[XOR] Berkas Lengkap & Disetujui?</b>) then (Tidak / Perlu Perbaikan)
+  |Warga|
+  :<b>Menerima Instruksi Perbaikan Berkas</b>
+  <i>[Input: Catatan Kekurangan dari RT]</i>
+  <i>[Output: Berkas Tambahan / Perbaikan]</i>;
+  :<b>Menyerahkan Ulang Berkas</b>;
+  detach
+else (Ya / Disetujui)
+  |Ketua RT|
+  :<b>Mengetikkan Draf Surat Pengantar Secara Manual</b>
+  <i>[Input: Data Pemohon, Format Blangko Word]</i>
+  <i>[Output: Lembar Surat Pengantar Tercetak]</i>;
+
+  :<b>Menandatangani Surat Basah & Membubuhkan Stempel RT</b>
+  <i>[Input: Lembar Cetak Surat, Pulpen, Stempel RT]</i>
+  <i>[Output: Surat Fisik Bertandatangan Basah]</i>;
+
+  :<b>Memberitahukan Warga via Pesan Singkat</b>
+  <i>[Input: Kontak WhatsApp Warga]</i>
+  <i>[Output: Pesan Notifikasi Surat Selesai]</i>;
+
+  |Warga|
+  :<b>Mendatangi Rumah Ketua RT</b>
+  <i>[Input: Pesan Pemberitahuan RT, Kehadiran Fisik]</i>
+  <i>[Output: Verifikasi Kedatangan Pemohon]</i>;
+
+  :<b>Mengambil Fisik Surat Pengantar</b>
+  <i>[Input: Penyerahan Fisik oleh Ketua RT]</i>
+  <i>[Output: Surat Pengantar Fisik Diterima]</i>;
+
+  stop
+endif
+
+@enduml

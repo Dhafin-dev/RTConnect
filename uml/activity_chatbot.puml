@@ -1,0 +1,40 @@
+@startuml RTConnect_Activity_Chatbot
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+|Warga|
+start
+:Membuka fitur "Tanya RT" (Chatbot);
+:Mengetikkan pertanyaan seputar administrasi/layanan RT;
+:Menekan tombol kirim pesan;
+
+|Sistem RTConnect (NLP & RAG)|
+:Menyimpan pesan pengguna ke tabel ChatLog;
+:Melakukan preprocessing teks pertanyaan;
+:Menghasilkan representasi vector embedding query;
+:Mencari kemiripan semantik (cosine similarity) dengan basis pengetahuan RT;
+
+if (Skor relevansi kemiripan >= 0.70?) then (Ya - Jawaban Ditemukan)
+  :Mengambil potongan dokumen aturan RT yang relevan;
+  :Mensintesis jawaban faktual melalui model LLM;
+  :Menyimpan respons bot ke ChatLog (status: 'terjawab');
+  :Menampilkan jawaban di layar chat bersama kutipan dokumen sumber;
+  |Warga|
+  :Membaca informasi jawaban resmi dari chatbot;
+  stop
+
+else (Tidak - Informasi Tidak Tersedia)
+  |Sistem RTConnect (NLP & RAG)|
+  :Menyusun ringkasan konteks pertanyaan warga;
+  :Menyimpan respons bot ke ChatLog (status: 'eskalasi');
+  :Membuat tautan langsung ke WhatsApp Ketua RT (wa.me) berisi ringkasan pertanyaan;
+  :Menampilkan pesan maaf dan tombol aksi "Hubungi Ketua RT via WhatsApp";
+  |Warga|
+  :Menekan tombol aksi "Hubungi Ketua RT via WhatsApp";
+  :Dialihkan ke aplikasi WhatsApp Ketua RT;
+  :Mengirimkan pertanyaan langsung ke Ketua RT;
+  stop
+endif
+
+@enduml

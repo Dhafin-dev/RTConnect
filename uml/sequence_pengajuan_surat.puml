@@ -1,0 +1,166 @@
+@startuml RTConnect_Sequence_Pengajuan_Surat
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Warga" as Warga
+boundary ":FormPengajuan" as UIForm
+boundary ":HalamanRiwayat" as UIRiwayat
+control ":SuratController" as Ctrl
+control ":AIGeneratorService" as AI
+control ":NotificationService" as Notif
+entity ":PengajuanSurat" as EntSurat
+entity ":SuratFinal" as EntFinal
+boundary ":DashboardRT" as UIRT
+boundary ":DetailPengajuan" as UIDetail
+actor "Ketua RT" as RT
+
+== Tahap 1: Pengajuan Surat oleh Warga & Otomasi Draf AI ==
+
+Warga -> UIForm : Membuka formulir pengajuan surat baru
+activate Warga
+activate UIForm
+UIForm --> Warga : Menampilkan formulir dengan biodata otomatis terisi
+deactivate UIForm
+
+Warga -> UIForm : Memilih jenis surat, mengisi keperluan, memilih metode tanda tangan, dan melampirkan berkas
+Warga -> UIForm : Menekan tombol "Kirim Pengajuan"
+activate UIForm
+
+UIForm -> Ctrl : submitPengajuan(dataPengajuan, fileLampiran)
+activate Ctrl
+
+Ctrl -> EntSurat : saveInitialPengajuan(data, status="diajukan")
+activate EntSurat
+EntSurat --> Ctrl : pengajuan_id
+deactivate EntSurat
+
+Ctrl -> AI : generateDraftNarasi(keperluan, profilWarga, jenisSurat)
+activate AI
+AI --> Ctrl : drafSuratKonten
+deactivate AI
+
+Ctrl -> EntSurat : updateDraftAI(pengajuan_id, drafSuratKonten)
+activate EntSurat
+EntSurat --> Ctrl : success
+deactivate EntSurat
+
+Ctrl -> Notif : pushNotification(rt_id, "Pengajuan baru memerlukan peninjauan")
+activate Notif
+Notif --> Ctrl : success
+deactivate Notif
+
+Ctrl --> UIForm : return Success("Pengajuan berhasil dikirim")
+UIForm --> Warga : Menampilkan status permohonan "Diajukan"
+deactivate UIForm
+deactivate Warga
+
+== Tahap 2: Peninjauan dan Tindak Lanjut oleh Ketua RT ==
+
+RT -> UIRT : Membuka antrean permohonan surat masuk
+activate RT
+activate UIRT
+UIRT -> Ctrl : getAntreanPengajuan()
+Ctrl -> EntSurat : findPendingApplications()
+activate EntSurat
+EntSurat --> Ctrl : listPengajuan
+deactivate EntSurat
+Ctrl --> UIRT : return listPengajuan
+UIRT --> RT : Menampilkan daftar kartu permohonan warga
+deactivate UIRT
+
+RT -> UIDetail : Membuka detail pengajuan dan draf surat
+activate UIDetail
+UIDetail -> Ctrl : getDetailPengajuan(pengajuan_id)
+Ctrl -> EntSurat : findById(pengajuan_id)
+activate EntSurat
+EntSurat --> Ctrl : detailRecord
+deactivate EntSurat
+Ctrl --> UIDetail : return detailRecord + draf_ai_konten
+UIDetail --> RT : Menampilkan informasi pemohon, berkas lampiran, dan preview draf AI
+
+alt Keputusan: Disetujui
+    RT -> UIDetail : Menekan tombol "Setujui Pengajuan"
+    UIDetail -> Ctrl : approvePengajuan(pengajuan_id, metode_ttd)
+    Ctrl -> EntSurat : generateNomorSurat(pengajuan_id)
+    activate EntSurat
+    EntSurat --> Ctrl : nomorSuratResmi
+    deactivate EntSurat
+
+    alt Pilihan Metode Tanda Tangan: Digital (Tempelan Gambar)
+        RT -> UIDetail : Memasukkan PIN keamanan dan menekan tombol konfirmasi tanda tangan digital
+        UIDetail -> Ctrl : confirmDigitalSignature(pengajuan_id, pin)
+        Ctrl -> EntFinal : createPdfWithSignatureStamp(pengajuan_id, nomorSuratResmi, rt_signature_url)
+        activate EntFinal
+        EntFinal --> Ctrl : surat_final_id, pdf_path
+        deactivate EntFinal
+        Ctrl -> EntSurat : updateStatus(pengajuan_id, "selesai")
+        activate EntSurat
+        EntSurat --> Ctrl : success
+        deactivate EntSurat
+        Ctrl -> Notif : notifyWarga(warga_id, "Surat pengantar selesai dan siap diunduh")
+        Ctrl --> UIDetail : return Success("Surat resmi digital berhasil diterbitkan")
+        UIDetail --> RT : Menampilkan notifikasi surat digital terbit
+    else Pilihan Metode Tanda Tangan: Basah (Fisik)
+        RT -> UIDetail : Mencetak berkas draf dan menekan tombol "Konfirmasi Siap Diambil"
+        UIDetail -> Ctrl : confirmPhysicalSignatureReady(pengajuan_id)
+        Ctrl -> EntSurat : updateStatus(pengajuan_id, "siap_diambil")
+        activate EntSurat
+        EntSurat --> Ctrl : success
+        deactivate EntSurat
+        Ctrl -> Notif : notifyWarga(warga_id, "Surat fisik siap diambil di kediaman Ketua RT")
+        Ctrl --> UIDetail : return Success("Status diubah menjadi Siap Diambil")
+        UIDetail --> RT : Menampilkan konfirmasi status fisik siap diambil
+    end
+else Keputusan: Minta Revisi
+    RT -> UIDetail : Memasukkan catatan kekurangan berkas dan menekan tombol "Minta Revisi"
+    UIDetail -> Ctrl : requestRevision(pengajuan_id, catatanRevisi)
+    Ctrl -> EntSurat : updateStatus(pengajuan_id, "perlu_revisi", catatanRevisi)
+    activate EntSurat
+    EntSurat --> Ctrl : success
+    deactivate EntSurat
+    Ctrl -> Notif : notifyWarga(warga_id, "Pengajuan memerlukan revisi: " + catatanRevisi)
+    Ctrl --> UIDetail : return Success("Instruksi revisi terkirim ke warga")
+    UIDetail --> RT : Menampilkan notifikasi permintaan revisi terkirim
+else Keputusan: Ditolak
+    RT -> UIDetail : Memasukkan alasan penolakan dan menekan tombol "Tolak Pengajuan"
+    UIDetail -> Ctrl : rejectPengajuan(pengajuan_id, alasanPenolakan)
+    Ctrl -> EntSurat : updateStatus(pengajuan_id, "ditolak", alasanPenolakan)
+    activate EntSurat
+    EntSurat --> Ctrl : success
+    deactivate EntSurat
+    Ctrl -> Notif : notifyWarga(warga_id, "Pengajuan ditolak: " + alasanPenolakan)
+    Ctrl --> UIDetail : return Success("Pengajuan ditolak")
+    UIDetail --> RT : Menampilkan notifikasi penolakan berhasil disimpan
+end
+deactivate UIDetail
+deactivate RT
+deactivate Ctrl
+
+== Tahap 3: Pengambilan / Pengunduhan Surat oleh Warga ==
+
+alt Alur Tanda Tangan Digital
+    Warga -> UIRiwayat : Membuka riwayat pengajuan dan memilih surat berstatus "Selesai"
+    activate Warga
+    activate UIRiwayat
+    Warga -> UIRiwayat : Menekan tombol "Unduh Surat"
+    UIRiwayat -> Ctrl : downloadPdf(pengajuan_id)
+    activate Ctrl
+    Ctrl -> EntFinal : getPdfFilePath(pengajuan_id)
+    activate EntFinal
+    EntFinal --> Ctrl : pdf_path
+    deactivate EntFinal
+    Ctrl --> UIRiwayat : return file_stream(application/pdf)
+    deactivate Ctrl
+    UIRiwayat --> Warga : Mengunduh berkas PDF resmi bertanda tangan digital
+    deactivate UIRiwayat
+    deactivate Warga
+else Alur Tanda Tangan Basah
+    Warga -> UIRiwayat : Melihat status "Siap Diambil" beserta info jadwal pengambilan di rumah RT
+    activate Warga
+    activate UIRiwayat
+    deactivate UIRiwayat
+    deactivate Warga
+end
+
+@enduml

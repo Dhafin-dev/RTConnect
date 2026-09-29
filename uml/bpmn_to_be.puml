@@ -1,0 +1,129 @@
+@startuml BPMN_TO_BE_RTConnect
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+|#F8F9FA|Warga|
+start
+:<b>Mengisi Formulir Pengajuan Surat</b>
+<i>[Input: Akun Warga Terautentikasi, Jenis Surat, Keperluan, Opsi TTD, Lampiran]</i>
+<i>[Output: Payload Data Pengajuan Terstruktur]</i>;
+
+|#EDF2F7|Sistem RTConnect|
+:<b>Memvalidasi Kelengkapan dan Format Isian</b>
+<i>[Input: Payload Data Pengajuan]</i>
+<i>[Output: Status Validasi (Valid / Invalid)]</i>;
+
+if (<b>[XOR] Validitas Data Pengajuan?</b>) then (Tidak Valid)
+  |Warga|
+  :<b>Menerima Pesan Error & Memperbaiki Isian Form</b>
+  <i>[Input: Pesan Kesalahan Validasi Field]</i>
+  <i>[Output: Perbaikan Data Form]</i>;
+  detach
+else (Valid)
+  |Sistem RTConnect|
+  :<b>Menyimpan Rekor Pengajuan (Status: Diajukan)</b>
+  <i>[Input: Payload Valid]</i>
+  <i>[Output: pengajuan_id Baru Tersimpan]</i>;
+
+  :<b>Merumuskan Draf Narasi Surat via Generative AI</b>
+  <i>[Input: pengajuan_id, Data Warga, Template Jenis Surat]</i>
+  <i>[Output: draf_ai_konten Tersimpan]</i>;
+
+  :<b>Mengirimkan Notifikasi Pengajuan Baru ke Ketua RT</b>
+  <i>[Input: ID Pengajuan, ID Ketua RT]</i>
+  <i>[Output: Entri Notifikasi & Badge pada Dashboard RT]</i>;
+
+  |#E8F0FE|Ketua RT|
+  :<b>Menerima Notifikasi & Membuka Antrean Pengajuan</b>
+  <i>[Input: Notifikasi Sistem, Akun Ketua RT]</i>
+  <i>[Output: Daftar Pengajuan Masuk Terbuka]</i>;
+
+  :<b>Meninjau Data Pemohon, Lampiran, dan Draf AI</b>
+  <i>[Input: Detail Biodata Warga, Lampiran PDF/Gambar, Draf Teks AI]</i>
+  <i>[Output: Hasil Pertimbangan Evaluasi RT]</i>;
+
+  if (<b>[XOR] Keputusan Evaluasi Ketua RT?</b>) then (Tolak)
+    :<b>Mengisi Alasan Penolakan Pengajuan</b>
+    <i>[Input: Teks Alasan Penolakan]</i>
+    <i>[Output: Catatan Penolakan Disubmit]</i>;
+    |Sistem RTConnect|
+    :<b>Memperbarui Status Pengajuan Menjadi 'Ditolak'</b>
+    <i>[Input: ID Pengajuan, Alasan Penolakan]</i>
+    <i>[Output: Status DB 'ditolak', Notifikasi Dikirim ke Warga]</i>;
+    |Warga|
+    :<b>Menerima Pemberitahuan Penolakan Permohonan</b>
+    <i>[Input: Notifikasi Penolakan dan Alasan dari RT]</i>
+    <i>[Output: Pengajuan Selesai / Dibatalkan]</i>;
+    stop
+
+  elseif (Minta Revisi)
+    :<b>Mengisi Catatan Revisi Perbaikan Berkas</b>
+    <i>[Input: Teks Catatan Kekurangan/Perbaikan]</i>
+    <i>[Output: Catatan Revisi Disubmit]</i>;
+    |Sistem RTConnect|
+    :<b>Memperbarui Status Menjadi 'Perlu Revisi'</b>
+    <i>[Input: ID Pengajuan, Catatan Revisi]</i>
+    <i>[Output: Status DB 'perlu_revisi', Notifikasi Revisi Terbit]</i>;
+    |Warga|
+    :<b>Menerima Notifikasi Revisi & Membuka Formulir Perbaikan</b>
+    <i>[Input: Notifikasi Revisi, Catatan RT, Data Form Lama]</i>
+    <i>[Output: Form Pengajuan Terbuka dengan Catatan RT]</i>;
+    :<b>Memperbarui Isian / Mengganti Berkas Lampiran</b>
+    <i>[Input: Perbaikan Data/Lampiran Baru Warga]</i>
+    <i>[Output: Form Revisi Siap Kirim Ulang]</i>;
+    :<b>Mengirim Ulang Pengajuan Revisi</b>;
+    detach
+
+  else (Setujui)
+    |Sistem RTConnect|
+    :<b>Menerbitkan Nomor Surat Resmi & Update Status 'Disetujui'</b>
+    <i>[Input: Pengesahan RT, Format Nomor Surat RT032]</i>
+    <i>[Output: nomor_surat_resmi Ter-generate, Status 'disetujui']</i>;
+
+    |Ketua RT|
+    :<b>Memeriksa Metode Tanda Tangan Terpilih</b>
+    <i>[Input: Kolom metode_tanda_tangan ('digital' / 'basah')]</i>
+    <i>[Output: Keputusan Jalur Pengesahan]</i>;
+
+    if (<b>[XOR] Jalur Pengesahan Tanda Tangan?</b>) then (Digital)
+      :<b>Mengonfirmasi Pengesahan & PIN Keamanan TTD Digital</b>
+      <i>[Input: PIN Kredensial Ketua RT]</i>
+      <i>[Output: Otorisasi Pembubuhan Stempel Tanda Tangan]</i>;
+      |Sistem RTConnect|
+      :<b>Menyematkan Gambar Stempel TTD RT & Menghasilkan File PDF Final</b>
+      <i>[Input: Draf Surat Disetujui, File TTD RT, Nomor Resmi, Metadata Validasi]</i>
+      <i>[Output: Dokumen PDF Resmi (surat_final), Status 'selesai']</i>;
+      :<b>Mengirimkan Notifikasi Dokumen Terbit ke Warga</b>
+      <i>[Input: ID Warga, URL Berkas PDF]</i>
+      <i>[Output: Notifikasi 'Surat Siap Diunduh']</i>;
+      |Warga|
+      :<b>Membuka Menu Pengajuan & Mengunduh Berkas PDF Surat Pengantar</b>
+      <i>[Input: Notifikasi Sistem, Klik Tombol 'Unduh Surat']</i>
+      <i>[Output: File PDF Surat Pengantar Resmi Tersimpan di Perangkat]</i>;
+      stop
+
+    else (Basah)
+      :<b>Mencetak Berkas Draf Surat Pengantar Resmi</b>
+      <i>[Input: Tampilan Dokumen Cetak Sistem, Perangkat Printer]</i>
+      <i>[Output: Lembar Kertas Fisik Surat Pengantar]</i>;
+      :<b>Menandatangani Dokumen Fisik & Membubuhkan Stempel Basah RT</b>
+      <i>[Input: Lembar Kertas Cetak, Pulpen, Stempel Tinta RT]</i>
+      <i>[Output: Surat Fisik Bertandatangan Basah Asli]</i>;
+      :<b>Memperbarui Status Pengajuan Menjadi 'Siap Diambil' di Sistem</b>
+      <i>[Input: Penekanan Tombol 'Konfirmasi Siap Diambil']</i>
+      <i>[Output: Status DB 'siap_diambil']</i>;
+      |Sistem RTConnect|
+      :<b>Mengirimkan Notifikasi Pengambilan Surat Fisik ke Warga</b>
+      <i>[Input: ID Warga, Jadwal Pengambilan, Lokasi Rumah RT]</i>
+      <i>[Output: Notifikasi 'Surat Fisik Siap Diambil']</i>;
+      |Warga|
+      :<b>Mendatangi Rumah Ketua RT & Mengambil Fisik Surat Pengantar</b>
+      <i>[Input: Notifikasi Sistem, Kehadiran Fisik di Lokasi RT]</i>
+      <i>[Output: Lembar Asli Surat Fisik Diterima oleh Warga]</i>;
+      stop
+    endif
+  endif
+endif
+
+@enduml

@@ -1,0 +1,70 @@
+@startuml RTConnect_UseCase_Diagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundcorner 8
+
+skinparam actor {
+  BackgroundColor #E8F0FE
+  BorderColor #1A73E8
+}
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #5F6368
+  ArrowColor #202124
+}
+
+actor "Warga" as Warga
+actor "Ketua RT" as RT
+
+rectangle "Sistem RTConnect" {
+
+  package "Modul Autentikasi" {
+    usecase "UC-01: Registrasi Akun" as UC01
+    usecase "UC-02: Login ke Sistem" as UC02
+  }
+
+  package "Modul Administrasi Surat Pengantar" {
+    usecase "UC-03: Mengajukan Surat Pengantar" as UC03
+    usecase "UC-04: Mendownload Surat Pengantar" as UC04
+    usecase "UC-05: Meninjau dan Menindaklanjuti\nPengajuan Surat" as UC05
+  }
+
+  package "Modul Layanan Informasi & Chatbot" {
+    usecase "UC-06: Bertanya kepada RT\nvia Chatbot" as UC06
+  }
+}
+
+' Relasi Aktor Warga
+Warga --> UC01
+Warga --> UC02
+Warga --> UC03
+Warga --> UC04
+Warga --> UC06
+
+' Relasi Aktor Ketua RT
+RT --> UC02
+RT --> UC05
+
+note right of UC05
+  <b>Catatan Revisi Dosen:</b>
+  Proses peninjauan berkas, keputusan
+  (Setuju, Revisi, Tolak), serta pembubuhan
+  tanda tangan (digital tempelan stempel
+  maupun basah fisik) disatukan ke dalam
+  <b>Menindaklanjuti Pengajuan Surat</b>.
+  Revisi form warga menjadi alur alternatif.
+end note
+
+note right of UC06
+  <b>Catatan Revisi Dosen:</b>
+  Menjawab pertanyaan warga bukan use case RT.
+  Eskalasi ke WhatsApp RT merupakan perilaku
+  otomatis sistem jika chatbot RAG tidak
+  menemukan jawaban di basis pengetahuan RT.
+end note
+
+@enduml

@@ -1,0 +1,135 @@
+@startuml RTConnect_Database_ERD
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam roundcorner 6
+
+entity "users" as users {
+  * user_id : INT <<PK, AI>>
+  --
+  * nik : VARCHAR(16) <<UNIQUE>>
+  * nama_lengkap : VARCHAR(100)
+  * email : VARCHAR(100) <<UNIQUE>>
+  * password_hash : VARCHAR(255)
+  * nomor_telepon : VARCHAR(20)
+  * alamat : VARCHAR(255)
+  nomor_rt : VARCHAR(5) = '032'
+  nomor_rw : VARCHAR(5) = '08'
+  * role : ENUM('warga', 'rt', 'admin')
+  tanda_tangan_url : VARCHAR(255)
+  is_active : BOOLEAN = TRUE
+  created_at : DATETIME
+  updated_at : DATETIME
+}
+
+entity "jenis_surat" as jenis_surat {
+  * jenis_surat_id : INT <<PK, AI>>
+  --
+  * kode_surat : VARCHAR(20) <<UNIQUE>>
+  * nama_surat : VARCHAR(100)
+  * template_dokumen : TEXT
+  persyaratan_dokumen : TEXT
+  is_aktif : BOOLEAN = TRUE
+  created_at : DATETIME
+}
+
+entity "pengajuan_surat" as pengajuan_surat {
+  * pengajuan_id : INT <<PK, AI>>
+  --
+  * nomor_pengajuan : VARCHAR(50) <<UNIQUE>>
+  * warga_id : INT <<FK>>
+  rt_id : INT <<FK, NULL>>
+  * jenis_surat_id : INT <<FK>>
+  * keperluan : TEXT
+  * metode_tanda_tangan : ENUM('digital', 'basah')
+  berkas_lampiran_url : VARCHAR(255)
+  draf_ai_konten : TEXT
+  * status : ENUM('diajukan', 'perlu_revisi', 'disetujui', 'ditolak', 'siap_diambil', 'selesai')
+  catatan_revisi : VARCHAR(255)
+  alasan_penolakan : VARCHAR(255)
+  tanggal_pengajuan : DATETIME
+  tanggal_diverifikasi : DATETIME
+  tanggal_selesai : DATETIME
+}
+
+entity "surat_final" as surat_final {
+  * surat_final_id : INT <<PK, AI>>
+  --
+  * pengajuan_id : INT <<FK, UNIQUE>>
+  * nomor_surat_resmi : VARCHAR(100) <<UNIQUE>>
+  * file_pdf_path : VARCHAR(255)
+  signature_image_path : VARCHAR(255)
+  * status_pengesahan : ENUM('digital_sah', 'basah_selesai')
+  tanggal_terbit : DATETIME
+  tanggal_diambil : DATETIME
+}
+
+entity "knowledge_base" as knowledge_base {
+  * knowledge_id : INT <<PK, AI>>
+  --
+  * judul_dokumen : VARCHAR(150)
+  * kategori : VARCHAR(50)
+  * isi_dokumen : LONGTEXT
+  diunggah_oleh_rt : INT <<FK, NULL>>
+  created_at : DATETIME
+  updated_at : DATETIME
+}
+
+entity "knowledge_chunks" as knowledge_chunks {
+  * chunk_id : INT <<PK, AI>>
+  --
+  * knowledge_id : INT <<FK>>
+  * urutan_chunk : INT
+  * isi_chunk : TEXT
+  kata_kunci : VARCHAR(255)
+  embedding_vector : JSON
+  created_at : DATETIME
+}
+
+entity "chat_sessions" as chat_sessions {
+  * session_id : INT <<PK, AI>>
+  --
+  * warga_id : INT <<FK>>
+  * status_sesi : ENUM('berlangsung', 'terjawab', 'dieskalasi', 'selesai')
+  started_at : DATETIME
+  ended_at : DATETIME
+}
+
+entity "chat_messages" as chat_messages {
+  * message_id : INT <<PK, AI>>
+  --
+  * session_id : INT <<FK>>
+  * pengirim : ENUM('warga', 'sistem_ai', 'rt')
+  * isi_pesan : TEXT
+  top_chunk_id : INT <<FK, NULL>>
+  similarity_score : DECIMAL(5, 4)
+  waktu_kirim : DATETIME
+}
+
+entity "notifikasi" as notifikasi {
+  * notifikasi_id : INT <<PK, AI>>
+  --
+  * penerima_id : INT <<FK>>
+  * tipe_notifikasi : ENUM('pengajuan_baru', 'perlu_revisi', 'surat_disetujui', 'surat_ditolak', 'surat_siap_diambil', 'eskalasi_chat')
+  * judul : VARCHAR(100)
+  * pesan_notifikasi : VARCHAR(255)
+  tautan_tujuan : VARCHAR(255)
+  is_dibaca : BOOLEAN = FALSE
+  created_at : DATETIME
+}
+
+' Relasi
+users ||--o{ pengajuan_surat : "mengajukan (warga)"
+users ||--o{ pengajuan_surat : "meninjau/memproses (rt)"
+users ||--o{ chat_sessions : "memulai sesi"
+users ||--o{ notifikasi : "menerima"
+users ||--o{ knowledge_base : "mengunggah (rt)"
+
+jenis_surat ||--o{ pengajuan_surat : "diklasifikasikan dalam"
+pengajuan_surat ||--o| surat_final : "menghasilkan"
+
+knowledge_base ||--|{ knowledge_chunks : "dipecah menjadi"
+chat_sessions ||--|{ chat_messages : "memuat pesan"
+knowledge_chunks ||--o{ chat_messages : "menjadi rujukan"
+
+@enduml

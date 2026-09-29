@@ -1,0 +1,186 @@
+@startuml RTConnect_Class_Diagram
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam roundcorner 6
+
+package "Domain / Entity Layer" {
+
+  class User {
+    - user_id: int
+    - nik: String
+    - nama_lengkap: String
+    - email: String
+    - password_hash: String
+    - nomor_telepon: String
+    - alamat: String
+    - nomor_rt: String
+    - nomor_rw: String
+    - role: String
+    - tanda_tangan_url: String
+    - is_active: boolean
+    - created_at: DateTime
+    + verifyPassword(plainPassword: String): boolean
+    + getProfile(): Map
+    + updateProfile(data: Map): void
+  }
+
+  class JenisSurat {
+    - jenis_surat_id: int
+    - kode_surat: String
+    - nama_surat: String
+    - template_dokumen: String
+    - persyaratan_dokumen: String
+    - is_aktif: boolean
+    + getTemplate(): String
+    + getPersyaratan(): String
+  }
+
+  class PengajuanSurat {
+    - pengajuan_id: int
+    - nomor_pengajuan: String
+    - warga_id: int
+    - rt_id: int
+    - jenis_surat_id: int
+    - keperluan: String
+    - metode_tanda_tangan: String
+    - berkas_lampiran_url: String
+    - draf_ai_konten: String
+    - status: String
+    - catatan_revisi: String
+    - alasan_penolakan: String
+    - tanggal_pengajuan: DateTime
+    - tanggal_diverifikasi: DateTime
+    - tanggal_selesai: DateTime
+    + submit(): boolean
+    + updateDraftAI(draf: String): void
+    + setDisetujui(rtId: int): void
+    + setPerluRevisi(catatan: String): void
+    + setDitolak(alasan: String): void
+  }
+
+  class SuratFinal {
+    - surat_final_id: int
+    - pengajuan_id: int
+    - nomor_surat_resmi: String
+    - file_pdf_path: String
+    - signature_image_path: String
+    - status_pengesahan: String
+    - tanggal_terbit: DateTime
+    - tanggal_diambil: DateTime
+    + generatePDF(): String
+    + verifySignature(): boolean
+  }
+
+  class KnowledgeBase {
+    - knowledge_id: int
+    - judul_dokumen: String
+    - kategori: String
+    - isi_dokumen: String
+    - diunggah_oleh_rt: int
+    - created_at: DateTime
+    + splitIntoChunks(): List
+  }
+
+  class KnowledgeChunk {
+    - chunk_id: int
+    - knowledge_id: int
+    - urutan_chunk: int
+    - isi_chunk: String
+    - kata_kunci: String
+    - embedding_vector: List<float>
+    + computeCosineSimilarity(queryVec: List<float>): float
+  }
+
+  class ChatSession {
+    - session_id: int
+    - warga_id: int
+    - status_sesi: String
+    - started_at: DateTime
+    - ended_at: DateTime
+    + closeSession(): void
+  }
+
+  class ChatMessage {
+    - message_id: int
+    - session_id: int
+    - pengirim: String
+    - isi_pesan: String
+    - top_chunk_id: int
+    - similarity_score: float
+    - waktu_kirim: DateTime
+  }
+
+  class Notifikasi {
+    - notifikasi_id: int
+    - penerima_id: int
+    - tipe_notifikasi: String
+    - judul: String
+    - pesan_notifikasi: String
+    - tautan_tujuan: String
+    - is_dibaca: boolean
+    - created_at: DateTime
+    + markAsRead(): void
+  }
+}
+
+package "Controller / Service Layer" {
+
+  class AuthController {
+    + register(userData: Map, signatureFile: File): Response
+    + authenticate(identity: String, pass: String): Response
+    + validateToken(token: String): User
+  }
+
+  class SuratController {
+    + submitPengajuan(data: Map, file: File): Response
+    + getAntreanPengajuan(rtId: int): List<PengajuanSurat>
+    + getDetailPengajuan(pengajuanId: int): Map
+    + approvePengajuan(pengajuanId: int, metode: String): Response
+    + requestRevision(pengajuanId: int, catatan: String): Response
+    + rejectPengajuan(pengajuanId: int, alasan: String): Response
+    + downloadPDF(pengajuanId: int): File
+  }
+
+  class ChatbotController {
+    + sendMessage(sessionId: int, userId: int, text: String): Map
+    + getChatHistory(sessionId: int): List<ChatMessage>
+  }
+
+  class AIGeneratorService {
+    + generateDraftNarasi(keperluan: String, profil: User, jenis: JenisSurat): String
+  }
+
+  class VectorSearchService {
+    + generateEmbedding(text: String): List<float>
+    + searchRelevantChunks(query: String, topK: int): List<KnowledgeChunk>
+  }
+
+  class NotificationService {
+    + pushNotification(userId: int, tipe: String, judul: String, pesan: String): void
+  }
+}
+
+' Entity Relationships
+User "1" <-- "0..*" PengajuanSurat : diajukan oleh (warga)
+User "1" <-- "0..*" PengajuanSurat : diproses oleh (RT)
+User "1" <-- "0..*" Notifikasi : diterima oleh
+User "1" <-- "0..*" ChatSession : memiliki sesi
+JenisSurat "1" <-- "0..*" PengajuanSurat : memiliki jenis
+PengajuanSurat "1" -- "0..1" SuratFinal : menghasilkan
+KnowledgeBase "1" *-- "1..*" KnowledgeChunk : dipecah menjadi
+ChatSession "1" *-- "1..*" ChatMessage : mencakup percakapan
+KnowledgeChunk "1" <-- "0..*" ChatMessage : menjadi rujukan
+
+' Controller to Entity Dependencies
+AuthController ..> User : mengelola
+SuratController ..> PengajuanSurat : memproses
+SuratController ..> SuratFinal : menerbitkan
+SuratController ..> NotificationService : memicu notifikasi
+SuratController ..> AIGeneratorService : memanggil formulasi draf
+ChatbotController ..> ChatSession : mengelola
+ChatbotController ..> ChatMessage : mencatat
+ChatbotController ..> VectorSearchService : memanggil pencarian RAG
+
+@enduml

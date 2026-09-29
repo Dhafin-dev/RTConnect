@@ -1,0 +1,51 @@
+@startuml BPMN_AS_IS_TanyaRT
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+|#F8F9FA|Warga|
+start
+:<b>Warga Mengalami Kendala Prosedural / Informasi RT</b>;
+:<b>Mengirim Pesan Pertanyaan via WhatsApp Pribadi Ketua RT</b>
+<i>[Input: Pertanyaan Warga Mengenai Prosedur Layanan]</i>
+<i>[Output: Pesan WhatsApp Terkirim]</i>;
+
+|#E8F0FE|Ketua RT|
+:<b>Membaca Pesan Warga di Sela Waktu Luang</b>
+<i>[Input: Notifikasi Pesan WhatsApp Warga]</i>
+<i>[Output: Pertanyaan Dipahami oleh RT]</i>;
+
+:<b>Mengetikkan Balasan Jawaban via WhatsApp</b>
+<i>[Input: Pemahaman RT Terkait Aturan Lingkungan]</i>
+<i>[Output: Pesan Jawaban Terkirim ke Warga]</i>;
+
+|Warga|
+:<b>Membaca Jawaban dari Ketua RT</b>
+<i>[Input: Pesan Balasan WhatsApp dari RT]</i>
+<i>[Output: Pemahaman Awal Warga]</i>;
+
+if (<b>[XOR] Warga Sudah Paham Edukasi?</b>) then (Ya)
+  :<b>Mendapatkan Informasi Lengkap</b>;
+  stop
+else (Belum Paham)
+  :<b>Mengajukan Permintaan Jadwal Temu Fisik</b>
+  <i>[Input: Permohonan Waktu Konsultasi Tatap Muka]</i>
+  <i>[Output: Permintaan Jadwal Dikirim]</i>;
+
+  |Ketua RT|
+  :<b>Menentukan Jadwal Temu Konsultasi di Rumah RT</b>
+  <i>[Input: Agenda Kegiatan Ketua RT]</i>
+  <i>[Output: Waktu & Tanggal Temu Disepakati]</i>;
+
+  :<b>Memberikan Edukasi Prosedural Secara Langsung</b>
+  <i>[Input: Penjelasan Lisan Aturan RT/RW]</i>
+  <i>[Output: Informasi Tersampaikan Tatap Muka]</i>;
+
+  |Warga|
+  :<b>Menghadiri Sesi Edukasi & Memahami Prosedur</b>
+  <i>[Input: Hadir di Rumah RT, Konsultasi Lisan]</i>
+  <i>[Output: Warga Paham Edukasi]</i>;
+  stop
+endif
+
+@enduml

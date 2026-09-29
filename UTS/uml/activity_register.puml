@@ -1,0 +1,70 @@
+@startuml RTConnect_Activity_Register
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+|Warga|
+start
+:Mengakses halaman registrasi;
+
+|Sistem|
+:Menampilkan formulir registrasi akun;
+
+|Warga|
+:Mengisi NIK (16 digit);
+:Mengisi nama lengkap;
+:Mengisi alamat domisili;
+:Mengisi nomor telepon;
+:Mengisi email aktif;
+:Mengisi password & konfirmasi password;
+:Mengunggah file stempel tanda tangan (foto/scan);
+:Menekan tombol "Daftar Akun";
+
+|Sistem|
+:Memeriksa kelengkapan seluruh field wajib;
+
+if (Semua field wajib terisi?) then (Tidak)
+  :Menampilkan pesan error "Semua isian wajib diisi";
+  |Warga|
+  :Melengkapi field yang kosong;
+  detach
+else (Ya)
+  |Sistem|
+  :Memeriksa format NIK (harus 16 digit angka);
+  if (Format NIK valid?) then (Tidak)
+    :Menampilkan pesan error "NIK harus 16 digit angka";
+    |Warga|
+    :Memperbaiki NIK;
+    detach
+  else (Ya)
+    |Sistem|
+    :Memeriksa ketersediaan NIK di database;
+    if (NIK sudah terdaftar?) then (Ya)
+      :Menampilkan pesan error "NIK sudah digunakan";
+      |Warga|
+      :Menggunakan NIK yang valid;
+      detach
+    else (Tidak)
+      |Sistem|
+      :Memeriksa ketersediaan Email di database;
+      if (Email sudah terdaftar?) then (Ya)
+        :Menampilkan pesan error "Email sudah terdaftar";
+        |Warga|
+        :Mengganti email lain;
+        detach
+      else (Tidak)
+        |Sistem|
+        :Mengenkripsi password dengan bcrypt hash;
+        :Menyimpan berkas stempel tanda tangan;
+        :Menyimpan data pengguna baru ke database (role: 'warga');
+        :Menampilkan notifikasi "Registrasi Berhasil";
+        :Mengarahkan pengguna ke Halaman Login;
+        |Warga|
+        :Menerima konfirmasi dan dialihkan ke Halaman Login;
+        stop
+      endif
+    endif
+  endif
+endif
+
+@enduml

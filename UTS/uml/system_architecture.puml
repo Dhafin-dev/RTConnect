@@ -1,0 +1,68 @@
+@startuml RTConnect_System_Architecture
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam roundcorner 8
+
+actor "Warga RT 032" as Warga #E8F0FE
+actor "Ketua RT 032" as RT #E8F0FE
+
+package "Presentation Layer (Client Tier)" {
+  node "Flutter Web & Mobile Application" as FlutterApp {
+    component "Warga Portal UI\n(Form Pengajuan, Chatbot, Riwayat)" as UIWarga
+    component "Ketua RT Dashboard UI\n(Antrean, Peninjauan, Tindak Lanjut)" as UIRT
+  }
+}
+
+package "Application & Logic Layer (Backend Tier)" {
+  node "RTConnect Core Backend (Python Flask)" as FlaskServer {
+    component "REST API Routing & Auth Middleware (JWT)" as APIRouter
+    component "Letter Processing & State Machine" as LetterModule
+    component "PDF Generation & Digital Signature Engine" as PDFEngine
+    component "RAG & Chatbot Orchestrator" as RAGModule
+    component "Notification Dispatcher" as NotifModule
+  }
+}
+
+package "Data Layer (Persistence Tier)" {
+  database "MySQL 8.0 Relational Database" as MySQL {
+    folder "Tabel Transaksional\n(users, jenis_surat, pengajuan_surat, surat_final)" as DBTrans
+    folder "Tabel Chatbot & Knowledge\n(knowledge_base, knowledge_chunks, chat_messages)" as DBChat
+    folder "Tabel Notifikasi" as DBNotif
+  }
+  folder "Local File System / Storage\n(Uploads: Berkas Lampiran, Stempel TTD, PDF Final)" as Storage
+}
+
+package "External AI & Communication Services" {
+  cloud "OpenAI API\n(Generative AI LLM & Text Embedding)" as OpenAI
+  cloud "WhatsApp Web & App Gateway\n(Deep-Link: https://wa.me/...)" as WA
+}
+
+' Koneksi Client ke Presentation
+Warga --> UIWarga : Mengakses Layanan
+RT --> UIRT : Mengelola Administrasi
+
+' Koneksi Presentation ke Application
+UIWarga --> APIRouter : HTTPS / JSON REST API
+UIRT --> APIRouter : HTTPS / JSON REST API
+
+' Koneksi Internal Application Layer
+APIRouter --> LetterModule
+APIRouter --> RAGModule
+LetterModule --> PDFEngine
+LetterModule --> NotifModule
+
+' Koneksi Application ke Data Layer
+LetterModule --> DBTrans : CRUD Pengajuan Surat
+RAGModule --> DBChat : Query Embedding & ChatLog
+NotifModule --> DBNotif : Catat Notifikasi
+PDFEngine --> Storage : Simpan & Baca Berkas PDF/TTD
+APIRouter --> Storage : Upload Berkas Pendukung
+
+' Koneksi Application ke External Services
+LetterModule --> OpenAI : Generate Draf Narasi Surat
+RAGModule --> OpenAI : Embeddings & Sintesis Jawaban
+RAGModule ..> WA : Redirect URL jika Tidak Ditemukan
+UIWarga ..> WA : Klik Tombol Eskalasi Langsung
+
+@enduml

@@ -1,0 +1,75 @@
+@startuml RTConnect_Sequence_Chatbot
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Warga" as Warga
+boundary ":HalamanChatbot" as UI
+control ":ChatbotController" as Ctrl
+control ":VectorSearchService" as VectorService
+entity ":KnowledgeChunk" as KB
+control ":LLMService" as LLM
+entity ":ChatLog" as Log
+
+Warga -> UI : Membuka antarmuka obrolan Tanya RT
+activate Warga
+activate UI
+UI --> Warga : Menampilkan ruang percakapan dengan saran pertanyaan FAQ
+deactivate UI
+
+Warga -> UI : Mengetikkan pertanyaan seputar administrasi RT
+Warga -> UI : Menekan tombol kirim pesan
+activate UI
+
+UI -> Ctrl : sendMessage(session_id, user_id, message_text)
+activate Ctrl
+
+Ctrl -> Log : saveUserMessage(session_id, user_id, message_text)
+activate Log
+Log --> Ctrl : message_id
+deactivate Log
+
+Ctrl -> VectorService : searchRelevantChunks(message_text, top_k=3)
+activate VectorService
+VectorService -> VectorService : generateQueryEmbedding(message_text)
+VectorService -> KB : querySimilarVectors(query_vector, similarity_threshold=0.70)
+activate KB
+KB --> VectorService : relevant_chunks, highest_score
+deactivate KB
+VectorService --> Ctrl : result_chunks, highest_score
+deactivate VectorService
+
+alt highest_score >= 0.70 (Informasi Tersedia di Basis Pengetahuan)
+    Ctrl -> LLM : generateGroundedAnswer(message_text, result_chunks)
+    activate LLM
+    LLM --> Ctrl : bot_reply_text
+    deactivate LLM
+
+    Ctrl -> Log : saveBotMessage(session_id, bot_reply_text, status="terjawab")
+    activate Log
+    Log --> Ctrl : success
+    deactivate Log
+
+    Ctrl --> UI : return ChatResponse(bot_reply_text, sources=result_chunks.metadata)
+    UI --> Warga : Menampilkan balasan chatbot beserta kutipan sumber dokumen resmi RT
+else highest_score < 0.70 (Informasi Tidak Ditemukan / Out-of-Domain)
+    Ctrl -> Ctrl : createEscalationSummary(message_text)
+    Ctrl -> Log : saveBotMessage(session_id, bot_fallback_text, status="eskalasi")
+    activate Log
+    Log --> Ctrl : success
+    deactivate Log
+
+    Ctrl --> UI : return EscalationResponse(fallback_message, wa_link_rt)
+    UI --> Warga : Menampilkan pesan maaf dan kartu aksi "Hubungi Ketua RT via WhatsApp"
+
+    opt Warga Melakukan Eskalasi Langsung ke RT
+        Warga -> UI : Menekan tombol aksi "Hubungi Ketua RT via WhatsApp"
+        UI --> Warga : Mengalihkan ke aplikasi WhatsApp dengan pesan pertanyaan terisi otomatis
+    end
+end
+
+deactivate Ctrl
+deactivate UI
+deactivate Warga
+
+@enduml

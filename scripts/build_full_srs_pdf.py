@@ -88,7 +88,10 @@ def get_fitted_image(img_path, max_width=490, max_height=520):
         print(f"Error loading image {img_path}: {e}")
         return None
 
-def build_pdf(filename="UTS_I1_RTConnect_SRS.pdf"):
+def build_pdf(filename=None):
+    if filename is None:
+        os.makedirs("UTS", exist_ok=True)
+        filename = os.path.join("UTS", "UTS_I1_RTConnect_SRS.pdf")
     doc = SimpleDocTemplate(
         filename,
         pagesize=A4,

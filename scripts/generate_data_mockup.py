@@ -53,7 +53,10 @@ class NumberedCanvas(canvas.Canvas):
         self.line(54, 46, 595 - 54, 46)
         self.restoreState()
 
-def build_pdf(filename="UTS_I1_RTConnect_DATA.pdf"):
+def build_pdf(filename=None):
+    if filename is None:
+        os.makedirs("UTS", exist_ok=True)
+        filename = os.path.join("UTS", "UTS_I1_RTConnect_DATA.pdf")
     doc = SimpleDocTemplate(
         filename,
         pagesize=A4,

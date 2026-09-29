@@ -1,0 +1,74 @@
+@startuml BPMN_TO_BE_TanyaRT
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+|#F8F9FA|Warga|
+start
+:<b>Membuka Halaman Tanya RT (Chatbot)</b>
+<i>[Input: Aplikasi RTConnect Terbuka]</i>
+<i>[Output: Tampilan Percakapan Chatbot Terbuka]</i>;
+
+:<b>Memasukkan Pertanyaan Mengenai Prosedur Layanan</b>
+<i>[Input: Teks Pertanyaan Pengguna]</i>
+<i>[Output: String Query Pertanyaan Dikirim]</i>;
+
+|#EDF2F7|Sistem RTConnect (NLP & RAG)|
+:<b>Menerima Pertanyaan & Mencatat ke ChatLog</b>
+<i>[Input: String Query Pertanyaan, session_id, user_id]</i>
+<i>[Output: ID Pesan Tercatat di Basis Data]</i>;
+
+:<b>Melakukan Analisis NLP & Kalkulasi Vector Embedding</b>
+<i>[Input: String Query Pertanyaan]</i>
+<i>[Output: Query Vector Embedding]</i>;
+
+:<b>Mencari Kemiripan Semantik pada Knowledge Base RT</b>
+<i>[Input: Query Vector, Index Vektor Dokumen Regulasi RT]</i>
+<i>[Output: Top Chunks Relevan & Skor Kemiripan (Cosine Similarity)]</i>;
+
+if (<b>[XOR] Informasi Ditemukan di Basis Pengetahuan?\n(Skor Relevansi >= 0.70)</b>) then (Ya - Informasi Tersedia)
+  :<b>Mensintesis Jawaban Terverifikasi Menggunakan LLM</b>
+  <i>[Input: Teks Pertanyaan, Potongan Dokumen Relevan]</i>
+  <i>[Output: Teks Respons Jawaban Grounded Tanpa Halusinasi]</i>;
+
+  :<b>Menampilkan Jawaban Chatbot & Kutipan Sumber Resmi</b>
+  <i>[Input: Teks Jawaban, Metadata Dokumen Rujukan]</i>
+  <i>[Output: Balasan Chatbot di Layar Warga]</i>;
+
+  |Warga|
+  :<b>Membaca Informasi Prosedur & Mendapatkan Jawaban</b>
+  <i>[Input: Balasan Chatbot di Aplikasi]</i>
+  <i>[Output: Warga Memperoleh Informasi Resmi (Pertanyaan Terjawab)]</i>;
+  stop
+
+else (Tidak - Informasi Tidak Tersedia)
+  |Sistem RTConnect (NLP & RAG)|
+  :<b>Mempersiapkan Pesan Fallback & Meringkas Pertanyaan</b>
+  <i>[Input: Pertanyaan Out-of-Domain]</i>
+  <i>[Output: Pesan Maaf & Ringkasan Topik Pertanyaan]</i>;
+
+  :<b>Membuat Tautan Eskalasi WhatsApp Resmi Ketua RT (wa.me)</b>
+  <i>[Input: Nomor Kontak Resmi Ketua RT, Ringkasan Pertanyaan Terenkripsi]</i>
+  <i>[Output: URL Deep-Link WhatsApp Terformat]</i>;
+
+  :<b>Menampilkan Pesan Eskalasi & Tombol Aksi WhatsApp</b>
+  <i>[Input: Pesan Maaf, URL WhatsApp]</i>
+  <i>[Output: Kartu Eskalasi Interaktif di Chatbot]</i>;
+
+  |Warga|
+  :<b>Menekan Tombol 'Hubungi Ketua RT via WhatsApp'</b>
+  <i>[Input: Penekanan Tombol Eskalasi]</i>
+  <i>[Output: Tautan URL Diarahkan ke Eksternal]</i>;
+
+  :<b>Dialihkan ke Aplikasi WhatsApp dengan Pesan Terisi Otomatis</b>
+  <i>[Input: URL Deep-Link WhatsApp]</i>
+  <i>[Output: Aplikasi WhatsApp Terbuka, Pesan Siap Terkirim ke RT]</i>;
+
+  |#E8F0FE|Ketua RT|
+  :<b>Menerima Pesan Eskalasi WhatsApp dari Warga & Menindaklanjuti</b>
+  <i>[Input: Pesan WhatsApp Berisi Konteks Permasalahan Warga]</i>
+  <i>[Output: Ketua RT Memberikan Solusi Langsung ke Warga]</i>;
+  stop
+endif
+
+@enduml

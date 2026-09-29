@@ -1,0 +1,63 @@
+@startuml RTConnect_Activity_Login
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+|Pengguna|
+start
+:Mengakses halaman login RTConnect;
+
+|Sistem|
+:Menampilkan formulir login (Email/NIK dan Password);
+
+|Pengguna|
+:Memasukkan Email atau NIK;
+:Memasukkan Password;
+:Menekan tombol "Masuk";
+
+|Sistem|
+:Memeriksa kelengkapan input kredensial;
+
+if (Kredensial terisi lengkap?) then (Tidak)
+  :Menampilkan notifikasi "Email/NIK dan Password wajib diisi";
+  |Pengguna|
+  :Melengkapi data login;
+  detach
+else (Ya)
+  |Sistem|
+  :Mencari data akun pengguna berdasarkan Email/NIK;
+  if (Akun ditemukan?) then (Tidak)
+    :Menampilkan notifikasi "Akun tidak terdaftar";
+    |Pengguna|
+    :Memeriksa kembali identitas login;
+    detach
+  else (Ya)
+    |Sistem|
+    :Memverifikasi kesesuaian password dengan hash tersimpan;
+    if (Password cocok?) then (Tidak)
+      :Menampilkan pesan error "Password salah";
+      |Pengguna|
+      :Mengisi ulang password yang benar;
+      detach
+    else (Ya)
+      |Sistem|
+      :Membuat sesi aktif dan token otorisasi (JWT);
+      :Mencatat timestamp login terakhir;
+      :Mengevaluasi peran (role) pengguna;
+      if (Role pengguna?) then (Warga)
+        :Mengarahkan ke Dashboard Warga (/warga/home);
+        |Pengguna|
+        :Melihat Dashboard Warga dan fitur layanan;
+        stop
+      else (Ketua RT)
+        |Sistem|
+        :Mengarahkan ke Dashboard Ketua RT (/rt/pengajuan);
+        |Pengguna|
+        :Melihat Dashboard Ketua RT dan antrean pengajuan;
+        stop
+      endif
+    endif
+  endif
+endif
+
+@enduml

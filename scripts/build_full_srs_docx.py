@@ -195,7 +195,10 @@ def format_custom_table(table, col_widths, col_alignments=None):
                         r.font.size = Pt(8)
                         r.font.color.rgb = RGBColor(32, 33, 36)
 
-def generate_srs_docx(output_filename="UTS_I1_RTConnect_SRS.docx"):
+def generate_srs_docx(output_filename=None):
+    if output_filename is None:
+        os.makedirs("UTS", exist_ok=True)
+        output_filename = os.path.join("UTS", "UTS_I1_RTConnect_SRS.docx")
     doc = docx.Document()
     
     # Set standard margins (1 inch)

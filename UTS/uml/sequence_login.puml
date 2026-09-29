@@ -1,0 +1,67 @@
+@startuml RTConnect_Sequence_Login
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Pengguna" as User
+boundary ":HalamanLogin" as UI
+control ":AuthController" as Ctrl
+entity ":User" as EntUser
+control ":SessionManager" as Session
+
+User -> UI : Membuka halaman login
+activate User
+activate UI
+UI --> User : Menampilkan formulir login (Email/NIK dan Password)
+deactivate UI
+
+User -> UI : Memasukkan kredensial (Email/NIK dan Password)
+User -> UI : Menekan tombol "Masuk"
+activate UI
+
+UI -> Ctrl : authenticate(identity, password)
+activate Ctrl
+
+Ctrl -> Ctrl : validateInputFormat(identity, password)
+alt Input Tidak Lengkap
+    Ctrl --> UI : return ValidationError("Email/NIK dan Password wajib diisi")
+    UI --> User : Menampilkan notifikasi isian belum lengkap
+else Format Valid
+    Ctrl -> EntUser : findByIdentity(identity)
+    activate EntUser
+    EntUser --> Ctrl : userRecord / null
+    deactivate EntUser
+
+    alt Akun Tidak Ditemukan
+        Ctrl --> UI : return AuthError("Akun tidak terdaftar")
+        UI --> User : Menampilkan pesan error akun tidak ditemukan
+    else Akun Ditemukan
+        Ctrl -> Ctrl : verifyPasswordHash(password, userRecord.password_hash)
+        alt Password Tidak Cocok
+            Ctrl --> UI : return AuthError("Password salah")
+            UI --> User : Menampilkan pesan peringatan password salah
+        else Password Cocok
+            Ctrl -> Session : createSession(userRecord.user_id, userRecord.role)
+            activate Session
+            Session --> Ctrl : sessionToken
+            deactivate Session
+
+            Ctrl -> EntUser : updateLastLogin(userRecord.user_id, timestamp)
+            activate EntUser
+            EntUser --> Ctrl : success
+            deactivate EntUser
+
+            Ctrl --> UI : return Success(sessionToken, userRecord.role)
+            alt Role == "warga"
+                UI --> User : Mengarahkan ke Dashboard Warga (/warga/home)
+            else Role == "rt"
+                UI --> User : Mengarahkan ke Dashboard Ketua RT (/rt/pengajuan)
+            end
+        end
+    end
+end
+deactivate Ctrl
+deactivate UI
+deactivate User
+
+@enduml

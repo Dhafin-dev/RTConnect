@@ -1,0 +1,68 @@
+@startuml RTConnect_Sequence_Register
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+actor "Warga" as User
+boundary ":HalamanRegister" as UI
+control ":AuthController" as Ctrl
+entity ":User" as EntUser
+control ":StorageService" as Storage
+
+User -> UI : Membuka halaman pendaftaran akun
+activate User
+activate UI
+UI --> User : Menampilkan formulir registrasi
+deactivate UI
+
+User -> UI : Mengisi data diri (NIK, Nama, Alamat, No. Telp, Email, Password) dan mengunggah berkas tanda tangan
+User -> UI : Menekan tombol "Daftar Akun"
+activate UI
+
+UI -> Ctrl : register(registerData, signatureFile)
+activate Ctrl
+
+Ctrl -> Ctrl : validateForm(registerData)
+alt Format Tidak Valid (NIK != 16 digit atau ada isian kosong)
+    Ctrl --> UI : return ValidationError(pesanError)
+    UI --> User : Menampilkan pesan kesalahan isian
+else Format Valid
+    Ctrl -> EntUser : checkNikExists(nik)
+    activate EntUser
+    EntUser --> Ctrl : isNikTaken
+    deactivate EntUser
+
+    alt NIK Sudah Terdaftar
+        Ctrl --> UI : return ConflictError("NIK sudah terdaftar")
+        UI --> User : Menampilkan peringatan NIK telah terdaftar
+    else NIK Tersedia
+        Ctrl -> EntUser : checkEmailExists(email)
+        activate EntUser
+        EntUser --> Ctrl : isEmailTaken
+        deactivate EntUser
+
+        alt Email Sudah Terdaftar
+            Ctrl --> UI : return ConflictError("Email sudah terdaftar")
+            UI --> User : Menampilkan peringatan Email telah terdaftar
+        else Email Tersedia
+            Ctrl -> Storage : uploadSignature(signatureFile)
+            activate Storage
+            Storage --> Ctrl : signatureUrl
+            deactivate Storage
+
+            Ctrl -> Ctrl : hashPassword(password)
+            Ctrl -> EntUser : createUser(userData, signatureUrl, role="warga")
+            activate EntUser
+            EntUser --> Ctrl : newUserId
+            deactivate EntUser
+
+            Ctrl --> UI : return Success("Registrasi berhasil")
+            UI --> User : Menampilkan notifikasi sukses dan mengalihkan ke Halaman Login
+        end
+    end
+end
+deactivate Ctrl
+deactivate UI
+deactivate User
+
+@enduml

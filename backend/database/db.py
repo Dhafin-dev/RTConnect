@@ -1,8 +1,14 @@
 import os
 from urllib.parse import unquote, urlparse
+from dotenv import load_dotenv
 
 import pymysql
 from pymysql.cursors import DictCursor
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(_BASE_DIR, '.env'))
+load_dotenv(os.path.join(os.path.dirname(_BASE_DIR), '.env'))
+load_dotenv()
 
 
 def _connection_options(migration=False):

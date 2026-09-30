@@ -7,7 +7,7 @@ chatbot_bp = Blueprint('chatbot', __name__, url_prefix='/api/v1/chatbot')
 
 @chatbot_bp.route('/query', methods=['POST'])
 @jwt_required
-@roles_accepted('warga')
+@roles_accepted('warga', 'rt', 'admin')
 def ask_chatbot():
     """
     API-014: Search the Tanya RT knowledge base and escalate low matches.

@@ -5,7 +5,6 @@ import os
 import uuid
 from pathlib import Path, PurePosixPath
 
-import boto3
 from PIL import Image, UnidentifiedImageError
 
 from config import Config
@@ -17,6 +16,10 @@ _ALLOWED_ATTACHMENT_EXTENSIONS = _ALLOWED_IMAGE_EXTENSIONS | {'pdf'}
 
 
 def _s3_client():
+    try:
+        import boto3
+    except ImportError as exc:
+        raise RuntimeError('boto3 is required when STORAGE_BACKEND is set to s3.') from exc
     options = {
         'region_name': Config.S3_REGION,
         'endpoint_url': Config.S3_ENDPOINT_URL,

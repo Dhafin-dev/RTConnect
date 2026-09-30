@@ -4,10 +4,12 @@ import secrets
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
-# Muat variabel environment dari .env jika ada
-load_dotenv()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Muat variabel environment dari .env di backend maupun root folder
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'))
+load_dotenv()
 
 class Config:
     BASE_DIR = BASE_DIR

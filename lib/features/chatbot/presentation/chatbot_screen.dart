@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -64,23 +65,13 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Tanya RT 032', style: AppTypography.heading3),
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.success,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Text('AI Assistant Aktif 24/7', style: AppTypography.caption),
-              ],
+            Text('Tanya RT', style: AppTypography.heading3),
+            Text(
+              'Pencarian informasi ${AppConstants.rtArea}',
+              style: AppTypography.caption,
             ),
           ],
         ),

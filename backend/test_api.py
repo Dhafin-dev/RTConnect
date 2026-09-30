@@ -38,8 +38,8 @@ def run_api_tests():
 
     # 3. Login Warga (API-002)
     res_warga = client.post('/api/v1/auth/login', json={
-        'identity': 'dafin@gmail.com',
-        'password': '123456'
+        'identity': 'resident@example.test',
+        'password': 'LocalTestOnly#2026'
     })
     assert res_warga.status_code == 200, f"Login Warga gagal: {res_warga.data}"
     warga_token = res_warga.get_json()['data']['token']
@@ -48,8 +48,8 @@ def run_api_tests():
 
     # 4. Login Ketua RT (API-002)
     res_rt = client.post('/api/v1/auth/login', json={
-        'identity': 'rt032@rtconnect.id',
-        'password': '123456'
+        'identity': 'rt@example.test',
+        'password': 'LocalTestOnly#2026'
     })
     assert res_rt.status_code == 200, f"Login RT gagal: {res_rt.data}"
     rt_token = res_rt.get_json()['data']['token']
@@ -71,7 +71,7 @@ def run_api_tests():
     assert dom_type is not None
     print(f"[PASS] 6. Daftar Jenis Surat (API-004): OK -> Ditemukan {len(types)} jenis surat master")
 
-    # 7. Warga Mengajukan Surat Domisili (Formulasi Draf AI) (API-005)
+    # 7. Warga Mengajukan Surat Domisili (Draf Template) (API-005)
     res_apply = client.post('/api/v1/letters/apply', headers=warga_headers, json={
         'jenis_surat_id': dom_type['jenis_surat_id'],
         'keperluan': 'Persyaratan pembukaan rekening bank syariah cabang Sidoarjo',
@@ -83,7 +83,7 @@ def run_api_tests():
     nomor_pengajuan = apply_data['nomor_pengajuan']
     assert apply_data['status'] == 'diajukan'
     assert 'draf_ai' in apply_data
-    print(f"[PASS] 7. Pengajuan Surat Warga (API-005): OK -> ID #{pengajuan_id} ({nomor_pengajuan}), Draf AI terformulasi")
+    print(f"[PASS] 7. Pengajuan Surat Warga (API-005): OK -> ID #{pengajuan_id} ({nomor_pengajuan}), draf template dibuat")
 
     # 8. Riwayat Pengajuan Milik Warga (API-006)
     res_my_apps = client.get('/api/v1/letters/my-applications', headers=warga_headers)
@@ -165,7 +165,7 @@ def run_api_tests():
     assert res_resubmit.get_json()['data']['status'] == 'diajukan'
     print(f"[PASS] 15. Resubmit Revisi Warga (API-009): OK -> Pengajuan #{rev_id} berhasil diajukan ulang")
 
-    # 16. Chatbot Tanya RT — Pertanyaan Relevan (RAG Grounded) (API-014)
+    # 16. Chatbot Tanya RT — pertanyaan yang cocok dengan basis informasi
     res_chat1 = client.post('/api/v1/chatbot/query', headers=warga_headers, json={
         'query': 'Berapa lama masa berlaku surat pengantar RT?'
     })
@@ -174,9 +174,9 @@ def run_api_tests():
     assert chat1_data['is_escalated'] == False
     assert chat1_data['similarity_score'] >= 0.70
     session_id = chat1_data['session_id']
-    print(f"[PASS] 16. RAG Chatbot Tanya RT (API-014 Grounded): OK -> Similarity: {chat1_data['similarity_score']} (>=0.70), Jawaban: {chat1_data['answer'][:70]}...")
+    print(f"[PASS] 16. Pencarian Tanya RT (cocok): OK -> Score: {chat1_data['similarity_score']}, Jawaban: {chat1_data['answer'][:70]}...")
 
-    # 17. Chatbot Tanya RT — Pertanyaan Tidak Ditemukan (RAG Escalated) (API-014)
+    # 17. Chatbot Tanya RT — pertanyaan yang dieskalasi
     res_chat2 = client.post('/api/v1/chatbot/query', headers=warga_headers, json={
         'session_id': session_id,
         'query': 'Kapan turnamen catur internasional diselenggarakan?'
@@ -186,7 +186,7 @@ def run_api_tests():
     assert chat2_data['is_escalated'] == True
     assert chat2_data['similarity_score'] < 0.70
     assert 'wa.me' in chat2_data['escalation_whatsapp_url']
-    print(f"[PASS] 17. RAG Chatbot Fallback Eskalasi (API-014 Escalation): OK -> Similarity: {chat2_data['similarity_score']} (<0.70), Link WA: {chat2_data['escalation_whatsapp_url'][:55]}...")
+    print(f"[PASS] 17. Eskalasi Tanya RT: OK -> Score: {chat2_data['similarity_score']}, Link WA: {chat2_data['escalation_whatsapp_url'][:55]}...")
 
     # 18. Chatbot Sessions & Message History
     res_sessions = client.get('/api/v1/chatbot/sessions', headers=warga_headers)

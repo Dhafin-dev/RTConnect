@@ -1,5 +1,5 @@
 name: rtconnect
-description: "RTConnect - Aplikasi Administrasi RT/RW Terintegrasi Generative AI dan NLP Chatbot"
+description: "RTConnect - Aplikasi Administrasi Warga RT/RW dengan Flutter dan Flask"
 publish_to: "none"
 version: 1.0.0+1
 

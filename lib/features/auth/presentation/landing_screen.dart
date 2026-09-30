@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -47,7 +48,7 @@ class LandingScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Sistem Administrasi RT 032 RW 08\nPerumahan Griya Taman Asri, Sidoarjo',
+                AppConstants.appTagline,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
               ),
@@ -59,9 +60,9 @@ class LandingScreen extends StatelessWidget {
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: [
-                  _buildFeatureBadge(Icons.auto_awesome, 'AI Draft Narasi'),
-                  _buildFeatureBadge(Icons.draw, 'TTD Digital Sah'),
-                  _buildFeatureBadge(Icons.smart_toy, 'Tanya RT 24/7'),
+                  _buildFeatureBadge(Icons.description_outlined, 'Draf dari template'),
+                  _buildFeatureBadge(Icons.draw, 'Pengesahan dengan PIN'),
+                  _buildFeatureBadge(Icons.menu_book_outlined, 'Info berbasis dokumen'),
                 ],
               ),
               const Spacer(),

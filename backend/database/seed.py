@@ -1,3 +1,8 @@
+import os
+import bcrypt
+
+from config import Config
+
 try:
     from database.db import execute, query_one
 except ImportError:
@@ -7,12 +12,17 @@ def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
-def seed_database():
+def seed_database(include_demo_users=None):
+    if include_demo_users is None:
+        include_demo_users = os.getenv('SEED_DEMO_USERS', '').lower() == 'true'
+    if include_demo_users and Config.IS_PRODUCTION:
+        raise RuntimeError('Demo users must never be seeded in production.')
+
     print("=== Memulai seeding data RTConnect ke MySQL ===")
 
     # 1. Master Jenis Surat
     surat_types = [
-        ('DOM', 'Surat Keterangan Domisili', 'Surat Keterangan Domisili Warga RT 032 RW 08 Griya Taman Asri', 'KTP dan Bukti Tempat Tinggal (PBB/Sewa)'),
+        ('DOM', 'Surat Keterangan Domisili', f'Surat Keterangan Domisili Warga {Config.RT_AREA}', 'KTP dan Bukti Tempat Tinggal (PBB/Sewa)'),
         ('KTP', 'Surat Pengantar KTP Baru / Perpanjangan', 'Surat Pengantar Pengurusan KTP-el ke Kelurahan/Kecamatan', 'Fotokopi Kartu Keluarga dan KTP Lama'),
         ('SKCK', 'Surat Pengantar SKCK', 'Surat Pengantar Pembuatan Catatan Kepolisian', 'KTP Asli dan Kartu Keluarga'),
         ('SKU', 'Surat Keterangan Usaha', 'Surat Keterangan Domisili Usaha Mikro Warga', 'Foto Tempat Usaha dan KTP Pemilik')
@@ -27,60 +37,44 @@ def seed_database():
             )
             print(f"  [+] Jenis Surat: {nama}")
 
-    # 2. Akun Pengguna Default (Ketua RT & Warga)
-    default_users = [
-        (
-            '3515080101800001',
-            'Pak RT Indra',
-            'rt032@rtconnect.id',
-            hash_password('123456'),
-            '081234567890',
-            'Griya Taman Asri Blok B-01',
-            'rt',
-            'uploads/signatures/rt_indra_signature.png'
-        ),
-        (
-            '3515082405020002',
-            'Ahmad Dhafin Al Farisy',
-            'dafin@gmail.com',
-            hash_password('123456'),
-            '089876543210',
-            'Griya Taman Asri Blok D-14',
-            'warga',
-            'uploads/signatures/warga_dafin_signature.png'
-        )
-    ]
+    # Demo accounts exist only for local development and isolated CI databases.
+    if include_demo_users:
+        default_users = [
+            ('0000000000000001', 'Test RT User', 'rt@example.test', 'LocalTestOnly#2026',
+             '0000000000', 'Alamat RT untuk pengujian', 'rt'),
+            ('0000000000000002', 'Test Resident', 'resident@example.test', 'LocalTestOnly#2026',
+             '0000000000', 'Alamat warga untuk pengujian', 'warga'),
+        ]
+        for nik, nama, email, password, phone, alamat, role in default_users:
+            existing = query_one("SELECT user_id FROM users WHERE email = %s OR nik = %s", (email, nik))
+            if not existing:
+                execute(
+                    """INSERT INTO users
+                       (nik, nama_lengkap, email, password_hash, nomor_telepon, alamat, nomor_rt, nomor_rw, role)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (nik, nama, email, hash_password(password), phone, alamat, Config.RT_NUMBER, Config.RW_NUMBER, role)
+                )
+                print(f"  [+] Development-only user: {nama} ({role.upper()})")
 
-    for nik, nama, email, pw_hash, phone, alamat, role, ttd in default_users:
-        existing = query_one("SELECT user_id FROM users WHERE email = %s OR nik = %s", (email, nik))
-        if not existing:
-            execute(
-                """INSERT INTO users 
-                   (nik, nama_lengkap, email, password_hash, nomor_telepon, alamat, role, tanda_tangan_digital) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-                (nik, nama, email, pw_hash, phone, alamat, role, ttd)
-            )
-            print(f"  [+] User: {nama} ({role.upper()})")
-
-    # 3. Knowledge Base untuk RAG Chatbot Tanya RT
+    # 3. Knowledge base for lexical Tanya RT search
     rt_user = query_one("SELECT user_id FROM users WHERE role = 'rt' LIMIT 1")
     rt_id = rt_user['user_id'] if rt_user else None
 
     bylaws = [
         (
-            'Pedoman Tata Tertib & Layanan Surat RT 032',
+            f'Pedoman Tata Tertib & Layanan Surat {Config.RT_AREA}',
             'administrasi',
-            '1. Surat pengantar RT 032 berlaku selama 30 hari kalender sejak tanggal pengesahan.\n'
+            f'1. Surat pengantar {Config.RT_AREA} berlaku selama 30 hari kalender sejak tanggal pengesahan.\n'
             '2. Untuk pembuatan surat domisili, warga wajib menyiapkan KTP asli dan bukti tempat tinggal.\n'
             '3. Warga yang mengurus surat keterangan usaha (SKU) wajib melampirkan foto tempat usaha fisik.\n'
             '4. Pelayanan surat tanda tangan basah dapat diambil di rumah Ketua RT pada jam 18.30 - 21.00 WIB setiap hari kerja.'
         ),
         (
-            'Ketentuan Iuran Lingkungan & Fasilitas Umum',
+            f'Ketentuan Iuran Lingkungan & Fasilitas Umum {Config.RT_AREA}',
             'fasum',
-            '1. Iuran kas kebersihan dan keamanan RT 032 dibayarkan paling lambat tanggal 10 setiap bulannya.\n'
-            '2. Penggunaan Balai Warga RT untuk hajatan atau acara warga wajib melapor kepada Ketua RT minimal 7 hari sebelumnya.\n'
-            '3. Kerja bakti saluran air dan kebersihan lingkungan dilaksanakan setiap hari Minggu pertama awal bulan.'
+            f'1. Iuran kas kebersihan dan keamanan {Config.RT_AREA} dibayarkan paling lambat tanggal 10 setiap bulannya.\n'
+            f'2. Penggunaan balai warga di {Config.RT_AREA} untuk hajatan atau acara warga wajib melapor kepada Ketua RT minimal 7 hari sebelumnya.\n'
+            f'3. Kerja bakti saluran air dan kebersihan {Config.RT_AREA} dilaksanakan setiap hari Minggu pertama awal bulan.'
         )
     ]
 

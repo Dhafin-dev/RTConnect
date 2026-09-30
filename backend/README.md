@@ -1,112 +1,70 @@
-# RTConnect — Backend REST API & Database Service
+# RTConnect — Backend REST API
 
-Service backend resmi untuk sistem pelayanan administrasi rukun tetangga **RTConnect** (RT 032 / RW 08 Perumahan Griya Taman Asri). Dibangun menggunakan **Python Flask** dan terintegrasi langsung dengan database **MySQL 8.4 LTS**.
+Flask REST API for RTConnect. Letter drafts are built from a deterministic template. Tanya RT ranks knowledge chunks with lexical cosine similarity and simple Indonesian stemming; it does not call an LLM or use embeddings. Returned retrieval scores are heuristic, not model confidence.
 
----
+## Stack
 
-## 1. Arsitektur & Teknologi
+- Python 3.12+, Flask, Gunicorn
+- MySQL 8.4+, PyMySQL with TLS support
+- JWT HS256 with one-day expiry; bcrypt password and RT signing-PIN hashes
+- Private local storage for development or private S3-compatible object storage for production
+- ReportLab PDF generation; displayed signature images are not cryptographic PDF signatures
 
-- **Bahasa & Framework:** Python 3.14+, Flask, Flask-CORS
-- **Database:** MySQL 8.4.3 LTS (Database `rtconnect_db`)
-- **Konektor Basis Data:** PyMySQL dengan pooling koneksi otomatis
-- **Autentikasi & Keamanan:** JSON Web Token (PyJWT, RS256/HS256, masa aktif 7 hari) & Bcrypt Password Hashing
-- **Mesin Dokumen & TTD Digital (UC-09):** ReportLab PDF Builder dengan **tempelan gambar tanda tangan digital** (signature image scan overlay) resmi Ketua RT
-- **Mesin AI Draf & RAG Chatbot (UC-05):** Formulasi draf otomatis surat pengantar + RAG retrieval berbasis Cosine Similarity & Indonesian Stemming dengan ambang batas kecocokan $\ge 0.70$ serta fallback eskalasi WhatsApp Ketua RT
+## Important files
 
----
+- `app.py`: Flask application and health endpoint
+- `config.py`: environment-based configuration and production validation
+- `database/schema.sql`: canonical schema
+- `database/migrate.py`: versioned schema migration, including upgrades from the previous column names
+- `database/seed.py`: idempotent master data; demo accounts are disabled by default
+- `database/create_rt_user.py`: interactive first RT account setup
+- `database/hash_rt_pin.py`: interactively generate `RT_SIGNING_PIN_HASH`
+- `database/sync_local_uploads_to_s3.py`: copy existing local uploads to the configured private bucket
+- `services/file_storage.py`: content validation and local/S3-compatible storage
+- `test_api.py`: MySQL-backed API integration suite
 
-## 2. Struktur Direktori
+## Local setup
 
-```text
-backend/
-├── app.py                     # Entry point server Flask & blueprint registration
-├── config.py                  # Konfigurasi database, JWT, path direktori upload
-├── requirements.txt           # Dependensi pustaka Python
-├── test_api.py                # Suite pengujian otomatis mencakup seluruh 15 endpoint
-├── database/
-│   ├── db.py                  # Helper koneksi & query wrapper PyMySQL
-│   ├── schema.sql             # Skema DDL 9 tabel MySQL
-│   └── seed.py                # Seeder data awal (akun RT/warga, jenis surat, RAG knowledge)
-├── middleware/
-│   └── auth_middleware.py     # Decorator @jwt_required dan @roles_accepted
-├── routes/
-│   ├── auth_routes.py         # API-001 (Register), API-002 (Login), API-003 (Me)
-│   ├── letter_routes.py       # API-004 s.d API-013 (Siklus lengkap pengajuan & PDF)
-│   ├── chatbot_routes.py      # API-014 (RAG Tanya RT, sesi percakapan, riwayat pesan)
-│   └── notification_routes.py # API-015 (Feed notifikasi & status baca)
-├── services/
-│   ├── ai_draft_service.py    # Formulasi draf surat resmi oleh sistem AI
-│   ├── rag_service.py         # Retrieval Augmented Generation & WhatsApp escalation
-│   └── pdf_service.py         # Generator PDF surat resmi dengan tempelan gambar TTD digital
-└── uploads/
-    ├── signatures/            # Tempat penyimpanan gambar tanda tangan digital (.png)
-    ├── attachments/           # Berkas pendukung pengajuan warga
-    └── generated_letters/     # Dokumen PDF surat resmi yang telah disahkan
-```
+From the repository root, copy `.env.example` to `.env`, change the local passwords, then run:
 
----
-
-## 3. Langkah Instalasi & Menjalankan
-
-### A. Persiapan Lingkungan Virtual (Virtualenv)
 ```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
+docker compose up --build
 ```
 
-### B. Inisialisasi Database MySQL
-Pastikan MySQL service aktif pada port 3306, kemudian jalankan:
+The API is available at `http://localhost:5000`; `GET /api/v1/health` reports database availability. Create the first RT account in a second terminal:
+
 ```powershell
-$env:PYTHONPATH="database"
-.\.venv\Scripts\python.exe database/seed.py
+docker compose exec api python -m database.create_rt_user
 ```
 
-### C. Menjalankan Server REST API
-```powershell
-$env:PYTHONPATH=".;database"
-.\.venv\Scripts\python.exe app.py
-```
-Server akan aktif di: `http://127.0.0.1:5000` (atau `http://10.0.2.2:5000` dari Android Emulator).
+Then register a resident in the Flutter app. To allow digital signing locally, generate a PIN hash with `docker compose exec api python -m database.hash_rt_pin`, put the hash in `.env` as `RT_SIGNING_PIN_HASH`, and restart the API. Never use demo credentials in a public environment.
 
-### D. Menjalankan Uji Coba Otomatis (Test Suite)
-Untuk memverifikasi seluruh 15 endpoint dan alur bisnis end-to-end:
-```powershell
-$env:PYTHONPATH=".;database"
-.\.venv\Scripts\python.exe test_api.py
-```
+## Production
 
----
+Do not run the Flask development server in production. Deploy the Docker image behind an HTTPS-enabled container host, use a managed MySQL database with a trusted CA certificate, and configure a private S3-compatible bucket. The application process does not run migrations or seed accounts at startup.
 
-## 4. Daftar Endpoint API (Sesuai `api.md`)
+Run `python -m database.migrate` once as a release command using a migration database credential. Run `python -m database.seed` for master letter types and knowledge content. Create the initial RT account with `python -m database.create_rt_user` in a protected one-off shell. See [`../DEPLOYMENT.md`](../DEPLOYMENT.md) for the production environment and Flutter build steps.
 
-| Endpoint ID | Metode | Path | Hak Akses | Deskripsi |
-|---|---|---|---|---|
-| **API-001** | POST | `/api/v1/auth/register` | Publik | Pendaftaran akun warga + scan tanda tangan |
-| **API-002** | POST | `/api/v1/auth/login` | Publik | Otentikasi Email/NIK & Password (JWT) |
-| **API-003** | GET | `/api/v1/auth/me` | Auth | Ambil profil pengguna login & role |
-| **API-004** | GET | `/api/v1/letters/types` | Auth | Daftar jenis surat & persyaratan |
-| **API-005** | POST | `/api/v1/letters/apply` | Warga | Pengajuan surat baru & formulasi draf AI |
-| **API-006** | GET | `/api/v1/letters/my-applications` | Warga | Riwayat permohonan surat warga |
-| **API-007** | GET | `/api/v1/letters/incoming-queue` | RT | Antrean surat masuk untuk verifikasi RT |
-| **API-008** | GET | `/api/v1/letters/:id` | Auth | Detail pengajuan surat & draf isi |
-| **API-009** | PUT | `/api/v1/letters/:id/resubmit` | Warga | Pengajuan ulang setelah perbaikan revisi |
-| **API-010** | POST | `/api/v1/letters/:id/decision` | RT | Keputusan RT: Setujui, Minta Revisi, Tolak |
-| **API-011** | POST | `/api/v1/letters/:id/sign-digital` | RT | Otorisasi PIN RT & terbit PDF + TTD digital |
-| **API-012** | POST | `/api/v1/letters/:id/confirm-physical` | RT | Otorisasi surat fisik siap diambil |
-| **API-013** | GET | `/api/v1/letters/:id/download` | Auth | Unduh dokumen PDF resmi |
-| **API-014** | POST | `/api/v1/chatbot/query` | Warga | Tanya RAG RT (similarity threshold 0.70) |
-| **API-015** | GET | `/api/v1/notifications` | Auth | Feed notifikasi status pengajuan & eskalasi |
+Demo users can only be seeded when `SEED_DEMO_USERS=true` outside production. Production startup rejects that setting.
 
----
+## API endpoints
 
-## 5. Kredensial Default Uji Coba
+| Method | Path | Access |
+|---|---|---|
+| POST | `/api/v1/auth/register` | Public resident registration |
+| POST | `/api/v1/auth/login` | Public |
+| GET | `/api/v1/auth/me` | Authenticated |
+| GET | `/api/v1/letters/types` | Authenticated |
+| POST | `/api/v1/letters/apply` | Resident |
+| GET | `/api/v1/letters/my-applications` | Resident |
+| GET | `/api/v1/letters/incoming-queue` | RT/admin |
+| GET | `/api/v1/letters/:id` | Owner, RT, or admin |
+| PUT | `/api/v1/letters/:id/resubmit` | Owner resident |
+| POST | `/api/v1/letters/:id/decision` | RT/admin |
+| POST | `/api/v1/letters/:id/sign-digital` | RT/admin |
+| POST | `/api/v1/letters/:id/confirm-physical` | RT/admin |
+| GET | `/api/v1/letters/:id/download` | Owner, RT, or admin |
+| POST | `/api/v1/chatbot/query` | Resident |
+| GET | `/api/v1/notifications` | Authenticated |
 
-- **Ketua RT 032:**
-  - Email: `rt032@rtconnect.id`
-  - Password: `123456`
-  - PIN Otorisasi TTD: `123456`
-- **Warga RT 032:**
-  - Email: `dafin@gmail.com`
-  - Password: `123456`
+The GitHub Actions workflow compiles the backend Python files and analyzes Flutter code. It can build the web release artifact and signed Android APK/AAB when the repository variables and signing secrets are configured. The MySQL-backed API integration script is available for manual use in an isolated test database.

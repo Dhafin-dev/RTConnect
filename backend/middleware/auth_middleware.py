@@ -6,7 +6,7 @@ from config import Config
 from database.db import query_one
 
 def generate_token(user_id: int, role: str, email: str) -> str:
-    """Menghasilkan JWT token dengan masa aktif 7 hari"""
+    """Generate a JWT with the configured expiration period."""
     payload = {
         'sub': str(user_id),
         'role': role,
@@ -34,7 +34,7 @@ def jwt_required(f):
             payload = jwt.decode(token, Config.JWT_SECRET, algorithms=['HS256'])
             user_id = int(payload['sub'])
             user = query_one(
-                "SELECT user_id, nik, nama_lengkap, email, nomor_telepon, alamat, nomor_rt, nomor_rw, role, tanda_tangan_digital, is_active FROM users WHERE user_id = %s",
+                "SELECT user_id, nik, nama_lengkap, email, nomor_telepon, alamat, nomor_rt, nomor_rw, role, tanda_tangan_url, is_active FROM users WHERE user_id = %s",
                 (user_id,)
             )
             if not user or not user['is_active']:

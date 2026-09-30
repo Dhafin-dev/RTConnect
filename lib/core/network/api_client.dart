@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 import '../errors/app_exception.dart';
@@ -6,10 +7,12 @@ import '../errors/app_exception.dart';
 /// Centralized Dio REST API Client
 class ApiClient {
   late final Dio _dio;
+  late final String _baseUrl;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   ApiClient({String? baseUrl}) {
     final effectiveBaseUrl = baseUrl ?? AppConstants.defaultBaseUrl;
+    _baseUrl = effectiveBaseUrl.replaceFirst(RegExp(r'/+$'), '');
     _dio = Dio(
       BaseOptions(
         baseUrl: effectiveBaseUrl,
@@ -26,11 +29,27 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final customUrl = await _storage.read(key: AppConstants.keyCustomBaseUrl);
-          if (customUrl != null && customUrl.isNotEmpty) {
-            options.baseUrl = customUrl;
-          } else {
-            options.baseUrl = AppConstants.defaultBaseUrl;
+          final selectedBaseUrl = (customUrl != null && customUrl.isNotEmpty)
+              ? customUrl.trim().replaceFirst(RegExp(r'/+$'), '')
+              : _baseUrl;
+          final uri = Uri.tryParse(selectedBaseUrl);
+          if (uri == null || !uri.hasAuthority || !{'http', 'https'}.contains(uri.scheme)) {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: const FormatException('Alamat server API tidak valid.'),
+              ),
+            );
           }
+          if (kReleaseMode && uri.scheme != 'https') {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: const FormatException('Aplikasi release hanya menerima API melalui HTTPS.'),
+              ),
+            );
+          }
+          options.baseUrl = selectedBaseUrl;
 
           final token = await _storage.read(key: AppConstants.keyAuthToken);
           if (token != null) {

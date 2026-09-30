@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_constants.dart';
 import '../data/chatbot_repository.dart';
 
 class ChatMessage {
@@ -63,7 +64,7 @@ class ChatbotController extends StateNotifier<ChatState> {
             messages: [
               ChatMessage(
                 sender: 'bot',
-                text: 'Halo! Saya asisten pintar Tanya RT 032 Griya Taman Asri. '
+                text: 'Halo! Saya Tanya RT untuk ${AppConstants.rtArea}. '
                     'Ada yang bisa saya bantu mengenai tata tertib, administrasi surat, atau kegiatan warga?',
               ),
             ],
@@ -107,7 +108,7 @@ class ChatbotController extends StateNotifier<ChatState> {
     } catch (e) {
       final botMsg = ChatMessage(
         sender: 'bot',
-        text: 'Maaf, terjadi kendala saat menghubungi asisten AI: $e',
+        text: 'Maaf, terjadi kendala saat menghubungi layanan Tanya RT: $e',
       );
       state = state.copyWith(
         messages: [...state.messages, botMsg],

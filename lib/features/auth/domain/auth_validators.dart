@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// Domain validation logic for Authentication
 class AuthValidators {
   static String? validateNIK(String? value) {
@@ -35,7 +37,7 @@ class AuthValidators {
     if (value == null || value.trim().isEmpty) {
       return 'Email wajib diisi';
     }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex = RegExp(r'^[\w.-]+@([\w-]+\.)+[A-Za-z]{2,63}$');
     if (!emailRegex.hasMatch(value.trim())) {
       return 'Format email tidak valid';
     }
@@ -48,6 +50,19 @@ class AuthValidators {
     }
     if (value.length < 6) {
       return 'Password minimal 6 karakter';
+    }
+    return null;
+  }
+
+  static String? validateNewPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password wajib diisi';
+    }
+    if (value.length < 12) {
+      return 'Password minimal 12 karakter';
+    }
+    if (utf8.encode(value).length > 72) {
+      return 'Password maksimal 72 byte';
     }
     return null;
   }

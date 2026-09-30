@@ -145,7 +145,7 @@ class _LetterHistoryScreenState extends ConsumerState<LetterHistoryScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        metode == 'digital' ? 'TTD Digital' : 'TTD Basah',
+                                        metode == 'digital' ? 'PIN + gambar tanda tangan' : 'TTD Basah',
                                         style: AppTypography.caption,
                                       ),
                                       const Spacer(),

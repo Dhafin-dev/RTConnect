@@ -5,13 +5,16 @@ RTConnect-KnowledgeBase/
 .dart_tool/
 .packages
 build/
-*.lock
 .flutter-plugins
 .flutter-plugins-dependencies
 
 # Environment & Secrets
 .env
 *.env.*
+!.env.example
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
 
 # Python / Local Dev
 __pycache__/

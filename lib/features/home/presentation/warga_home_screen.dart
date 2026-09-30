@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -18,7 +19,7 @@ class WargaHomeScreen extends ConsumerWidget {
     final user = authState.user;
     final myAppsAsync = ref.watch(myApplicationsProvider);
 
-    final namaWarga = user?.namaLengkap ?? 'Warga RT 032';
+    final namaWarga = user?.namaLengkap ?? 'Warga';
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -27,7 +28,7 @@ class WargaHomeScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('RTConnect', style: AppTypography.heading2.copyWith(color: AppColors.primary)),
-            const Text('RT 032 RW 08 Griya Taman Asri', style: AppTypography.caption),
+            const Text(AppConstants.rtArea, style: AppTypography.caption),
           ],
         ),
         backgroundColor: AppColors.surface,
@@ -70,7 +71,7 @@ class WargaHomeScreen extends ConsumerWidget {
                     Text('Halo, $namaWarga 👋', style: AppTypography.heading2.copyWith(color: Colors.white)),
                     const SizedBox(height: 4),
                     Text(
-                      'Layanan administrasi rukun tetangga berbasis digital & AI.',
+                      'Pengajuan surat, status layanan, dan informasi lingkungan.',
                       style: AppTypography.bodySmall.copyWith(color: Colors.white70),
                     ),
                   ],
@@ -99,7 +100,7 @@ class WargaHomeScreen extends ConsumerWidget {
                       context,
                       icon: Icons.smart_toy_outlined,
                       title: 'Tanya RT',
-                      desc: 'AI Assistant warga 24/7',
+                      desc: 'Cari pada basis informasi RT',
                       color: Colors.indigo,
                       onTap: () => context.push(RouteNames.chatbot),
                     ),
@@ -123,24 +124,11 @@ class WargaHomeScreen extends ConsumerWidget {
                   Expanded(
                     child: _buildServiceCard(
                       context,
-                      icon: Icons.account_balance_wallet_outlined,
-                      title: 'Iuran Kas',
-                      desc: 'Informasi kas lingkungan',
+                      icon: Icons.menu_book_outlined,
+                      title: 'Info Lingkungan',
+                      desc: 'Cari kebijakan dan ketentuan RT',
                       color: Colors.deepOrange,
-                      onTap: () {
-                        showDialog<void>(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            title: const Text('Iuran Lingkungan RT 032'),
-                            content: const Text(
-                              'Iuran kas kebersihan dan keamanan RT 032 sebesar Rp50.000/bulan dibayarkan paling lambat tanggal 10 setiap bulannya ke bendahara RT.',
-                            ),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Tutup')),
-                            ],
-                          ),
-                        );
-                      },
+                      onTap: () => context.push(RouteNames.chatbot),
                     ),
                   ),
                 ],

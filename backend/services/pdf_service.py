@@ -1,10 +1,17 @@
 import os
 import datetime
+import io
+from xml.sax.saxutils import escape
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
 from config import Config
+from services.file_storage import read_bytes
+
+
+def _user_paragraph(value, style):
+    return Paragraph(escape(str(value or '-')).replace('\n', '<br/>'), style)
 
 def generate_official_letter_pdf(
     application: dict,
@@ -15,7 +22,7 @@ def generate_official_letter_pdf(
     output_filename: str = None
 ) -> str:
     """
-    Menghasilkan file PDF Surat Resmi RT 032 dengan Kop Surat, data pemohon,
+    Menghasilkan file PDF surat dengan kop komunitas, data pemohon,
     isi draf pengantar, dan tempelan gambar tanda tangan digital Ketua RT (UC-09).
     """
     os.makedirs(Config.LETTERS_FOLDER, exist_ok=True)
@@ -125,9 +132,9 @@ def generate_official_letter_pdf(
     story = []
 
     # 1. KOP SURAT RT
-    story.append(Paragraph("RUKUN TETANGGA 032 / RUKUN WARGA 08", header_title_style))
-    story.append(Paragraph("PERUMAHAN GRIYA TAMAN ASRI — KELURAHAN SEPANJANG", header_title_style))
-    story.append(Paragraph("KECAMATAN TAMAN, KABUPATEN SIDOARJO — JAWA TIMUR 61257", header_subtitle_style))
+    story.append(Paragraph(escape(Config.RT_AREA.upper()), header_title_style))
+    story.append(Paragraph(escape(Config.RT_LOCATION_LINE_2), header_title_style))
+    story.append(Paragraph(escape(Config.RT_LOCATION_LINE_3), header_subtitle_style))
     story.append(Spacer(1, 8))
     
     # Garis Pembatas Kop Surat
@@ -136,24 +143,24 @@ def generate_official_letter_pdf(
 
     # 2. JUDUL DAN NOMOR SURAT
     nama_surat_upper = letter_type.get('nama_surat', 'SURAT KETERANGAN').upper()
-    story.append(Paragraph(f"<u>{nama_surat_upper}</u>", doc_title_style))
-    story.append(Paragraph(f"Nomor: {official_letter_number}", doc_no_style))
+    story.append(Paragraph(f"<u>{escape(nama_surat_upper)}</u>", doc_title_style))
+    story.append(Paragraph(f"Nomor: {escape(str(official_letter_number))}", doc_no_style))
 
     # 3. PARAGRAF PEMBUKA
     pembuka = (
-        "Yang bertanda tangan di bawah ini Ketua RT 032 RW 08 Griya Taman Asri, "
-        "Kecamatan Taman, Kabupaten Sidoarjo, dengan ini menerangkan bahwa:"
+        f"Yang bertanda tangan di bawah ini Ketua {Config.RT_AREA}, "
+        f"{Config.RT_LOCATION_LINE_3}, dengan ini menerangkan bahwa:"
     )
-    story.append(Paragraph(pembuka, body_style))
+    story.append(Paragraph(escape(pembuka), body_style))
     story.append(Spacer(1, 6))
 
     # 4. TABEL BIODATA PEMOHON
     data_pemohon = [
-        [Paragraph("Nama Lengkap", table_label_style), Paragraph(":", table_label_style), Paragraph(resident.get('nama_lengkap', '-'), table_value_style)],
-        [Paragraph("NIK", table_label_style), Paragraph(":", table_label_style), Paragraph(resident.get('nik', '-'), table_value_style)],
-        [Paragraph("Nomor Telepon", table_label_style), Paragraph(":", table_label_style), Paragraph(resident.get('nomor_telepon', '-'), table_value_style)],
-        [Paragraph("Alamat Tinggal", table_label_style), Paragraph(":", table_label_style), Paragraph(f"{resident.get('alamat', '-')}, RT {resident.get('nomor_rt', '032')}/RW {resident.get('nomor_rw', '08')}", table_value_style)],
-        [Paragraph("Keperluan", table_label_style), Paragraph(":", table_label_style), Paragraph(application.get('keperluan', '-'), table_value_style)]
+        [Paragraph("Nama Lengkap", table_label_style), Paragraph(":", table_label_style), _user_paragraph(resident.get('nama_lengkap'), table_value_style)],
+        [Paragraph("NIK", table_label_style), Paragraph(":", table_label_style), _user_paragraph(resident.get('nik'), table_value_style)],
+        [Paragraph("Nomor Telepon", table_label_style), Paragraph(":", table_label_style), _user_paragraph(resident.get('nomor_telepon'), table_value_style)],
+        [Paragraph("Alamat Tinggal", table_label_style), Paragraph(":", table_label_style), _user_paragraph(f"{resident.get('alamat', '-')}, RT {resident.get('nomor_rt', '032')}/RW {resident.get('nomor_rw', '08')}", table_value_style)],
+        [Paragraph("Keperluan", table_label_style), Paragraph(":", table_label_style), _user_paragraph(application.get('keperluan'), table_value_style)]
     ]
 
     t = Table(data_pemohon, colWidths=[120, 15, 350])
@@ -167,8 +174,8 @@ def generate_official_letter_pdf(
 
     # 5. PARAGRAF ISI / DRAF KETERANGAN
     draf_isi = application.get('draf_ai_konten') or (
-        "Orang tersebut di atas adalah benar-benar warga yang bertempat tinggal di lingkungan RT 032 RW 08 "
-        "Griya Taman Asri dan berkelakuan baik dalam kehidupan bermasyarakat."
+        f"Orang tersebut di atas adalah benar-benar warga yang bertempat tinggal di lingkungan {Config.RT_AREA} "
+        "dan berkelakuan baik dalam kehidupan bermasyarakat."
     )
     
     # Ambil paragraf penjelas jika draf mengandung baris-baris
@@ -176,9 +183,9 @@ def generate_official_letter_pdf(
     if lines:
         for line in lines:
             if not line.startswith("Nama Lengkap") and not line.startswith("NIK") and not line.startswith("Alamat Tinggal"):
-                story.append(Paragraph(line, body_style))
+                story.append(_user_paragraph(line, body_style))
     else:
-        story.append(Paragraph(draf_isi, body_style))
+        story.append(_user_paragraph(draf_isi, body_style))
 
     story.append(Spacer(1, 8))
 
@@ -196,30 +203,32 @@ def generate_official_letter_pdf(
     rt_name = rt_user.get('nama_lengkap', Config.RT_NAME)
 
     # Cek lokasi file tanda tangan digital RT
-    sig_rel_path = rt_user.get('tanda_tangan_digital') or 'uploads/signatures/rt_indra_signature.png'
-    # Resolusi path absolut
-    if os.path.isabs(sig_rel_path):
-        sig_abs_path = sig_rel_path
-    else:
-        sig_abs_path = os.path.join(Config.BASE_DIR, sig_rel_path)
+    signature_key = rt_user.get('tanda_tangan_url')
 
     # Komponen tanda tangan
     sign_flowables = [
-        Paragraph(f"Sidoarjo, {today_formatted}", sign_style),
-        Paragraph("Ketua RT 032 RW 08", sign_bold_style),
+        Paragraph(f"{escape(Config.RT_SIGNING_LOCATION)}, {today_formatted}", sign_style),
+        Paragraph(f"Ketua RT {escape(Config.RT_NUMBER)} RW {escape(Config.RW_NUMBER)}", sign_bold_style),
         Spacer(1, 4)
     ]
 
-    if os.path.exists(sig_abs_path):
-        # Tempelan Gambar Tanda Tangan Digital (Signature Image Overlay)
-        sig_img = Image(sig_abs_path, width=140, height=48)
+    if signature_key:
+        try:
+            signature_bytes = read_bytes(signature_key)
+        except FileNotFoundError:
+            signature_bytes = None
+    else:
+        signature_bytes = None
+
+    if signature_bytes:
+        sig_img = Image(io.BytesIO(signature_bytes), width=140, height=48)
         sign_flowables.append(sig_img)
     else:
         sign_flowables.append(Spacer(1, 48))
 
     sign_flowables.append(Spacer(1, 4))
-    sign_flowables.append(Paragraph(f"<b><u>( {rt_name} )</u></b>", sign_bold_style))
-    sign_flowables.append(Paragraph("Pengesahan Digital Resmi RTConnect", ParagraphStyle('SignSub', parent=sign_style, fontSize=8, textColor=colors.HexColor('#64748B'))))
+    sign_flowables.append(Paragraph(f"<b><u>( {escape(str(rt_name))} )</u></b>", sign_bold_style))
+    sign_flowables.append(Paragraph("Pengesahan Ketua RT melalui PIN; tanda tangan berupa gambar", ParagraphStyle('SignSub', parent=sign_style, fontSize=8, textColor=colors.HexColor('#64748B'))))
 
     # Letakkan tanda tangan di sisi kanan dokumen
     sign_table_data = [

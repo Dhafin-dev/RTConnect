@@ -39,7 +39,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
             children: [
               Icon(Icons.draw, color: AppColors.primary),
               SizedBox(width: AppSpacing.xs),
-              Text('Otorisasi TTD Digital', style: AppTypography.heading3),
+              Text('Pengesahan Surat dengan PIN', style: AppTypography.heading3),
             ],
           ),
           content: Column(
@@ -52,7 +52,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
               ),
               const SizedBox(height: AppSpacing.sm),
               const Text(
-                'Sistem akan menyematkan pindaian tanda tangan digital resmi Ketua RT ke dokumen PDF (UC-09).',
+                'Sistem menempelkan gambar tanda tangan Ketua RT ke PDF setelah memeriksa PIN. PDF ini tidak memiliki tanda tangan kriptografis.',
                 style: AppTypography.caption,
               ),
               const SizedBox(height: AppSpacing.md),
@@ -60,9 +60,9 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
                 controller: _pinController,
                 keyboardType: TextInputType.number,
                 obscureText: true,
-                maxLength: 6,
+                maxLength: 72,
                 decoration: InputDecoration(
-                  labelText: 'PIN Otorisasi RT (Default: 123456)',
+                  labelText: 'PIN Otorisasi RT',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   prefixIcon: const Icon(Icons.lock_outline),
                 ),
@@ -85,7 +85,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       backgroundColor: AppColors.success,
-                      content: Text('Tanda tangan digital berhasil disematkan! Dokumen PDF resmi telah terbit.'),
+                      content: Text('PDF diterbitkan dan gambar tanda tangan disematkan.'),
                     ),
                   );
                   unawaited(context.push('/surat/preview/$id'));
@@ -303,7 +303,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
                                     }
                                   },
                                   icon: Icon(metode == 'digital' ? Icons.check_circle_outline : Icons.store, color: Colors.white, size: 18),
-                                  label: Text(metode == 'digital' ? 'Sahkan TTD' : 'Siap Diambil', style: const TextStyle(color: Colors.white)),
+                                  label: Text(metode == 'digital' ? 'Terbitkan PDF' : 'Siap Diambil', style: const TextStyle(color: Colors.white)),
                                 ),
                               ),
                               const SizedBox(width: AppSpacing.xs),

@@ -1,12 +1,16 @@
 import os
 import random
+import secrets
 import datetime
+from io import BytesIO
+from pathlib import PurePosixPath
 from flask import Blueprint, request, jsonify, send_file
-from werkzeug.utils import secure_filename
+import bcrypt
 from config import Config
 from database.db import query_all, query_one, execute
 from middleware.auth_middleware import jwt_required, roles_accepted
 from services.ai_draft_service import generate_letter_draft
+from services.file_storage import read_bytes, store_bytes, store_upload
 from services.pdf_service import generate_official_letter_pdf
 
 letter_bp = Blueprint('letters', __name__, url_prefix='/api/v1/letters')
@@ -21,7 +25,7 @@ def generate_nomor_surat_resmi(jenis_kode: str) -> str:
     roman_months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
     month_roman = roman_months[now.month - 1]
     rand_seq = random.randint(100, 999)
-    return f"032/08/GTA/{jenis_kode}/{rand_seq}/{month_roman}/{now.year}"
+    return f"{Config.RT_NUMBER}/{Config.RW_NUMBER}/{Config.RT_LETTER_CODE}/{jenis_kode}/{rand_seq}/{month_roman}/{now.year}"
 
 @letter_bp.route('/types', methods=['GET'])
 @jwt_required
@@ -43,23 +47,31 @@ def apply_letter():
     user = request.current_user
     
     if request.is_json:
-        data = request.get_json() or {}
+        parsed_data = request.get_json(silent=True)
+        data = parsed_data if isinstance(parsed_data, dict) else {}
         lampiran_file = None
     else:
         data = request.form.to_dict()
         lampiran_file = request.files.get('lampiran')
 
-    jenis_surat_id = data.get('jenis_surat_id')
-    keperluan = (data.get('keperluan') or '').strip()
-    metode_tanda_tangan = data.get('metode_tanda_tangan', 'digital')
+    try:
+        jenis_surat_id = int(data.get('jenis_surat_id'))
+    except (TypeError, ValueError):
+        jenis_surat_id = 0
+    keperluan_value = data.get('keperluan')
+    keperluan = keperluan_value.strip() if isinstance(keperluan_value, str) else ''
+    metode_value = data.get('metode_tanda_tangan', 'digital')
+    metode_tanda_tangan = metode_value if isinstance(metode_value, str) else ''
 
-    if not jenis_surat_id or not keperluan:
+    if not jenis_surat_id or not keperluan or len(keperluan) > 2000:
         return jsonify({
             'success': False,
-            'message': 'Jenis surat dan rincian keperluan permohonan wajib diisi',
+            'message': 'Jenis surat dan keperluan wajib diisi; keperluan maksimal 2000 karakter',
             'data': None,
             'error': 'VALIDATION_ERROR'
         }), 400
+    if metode_tanda_tangan not in {'digital', 'basah'}:
+        return jsonify({'success': False, 'message': 'Metode tanda tangan tidak valid', 'data': None, 'error': 'VALIDATION_ERROR'}), 400
 
     jenis = query_one("SELECT * FROM jenis_surat WHERE jenis_surat_id = %s", (jenis_surat_id,))
     if not jenis:
@@ -70,15 +82,15 @@ def apply_letter():
             'error': 'NOT_FOUND'
         }), 404
 
-    # Simpan lampiran jika ada
+    # Simpan lampiran dengan nama acak setelah memeriksa ukuran dan isi file.
     lampiran_url = None
     if lampiran_file and lampiran_file.filename:
-        filename = f"att_{user['nik']}_{secure_filename(lampiran_file.filename)}"
-        save_path = os.path.join(Config.ATTACHMENTS_FOLDER, filename)
-        lampiran_file.save(save_path)
-        lampiran_url = f"uploads/attachments/{filename}"
+        try:
+            lampiran_url = store_upload(lampiran_file, 'attachments')
+        except ValueError as error:
+            return jsonify({'success': False, 'message': str(error), 'data': None, 'error': 'INVALID_UPLOAD'}), 400
 
-    # Formulasi Draf AI Otomatis
+    # Susun draf deterministik dari template
     draf_ai = generate_letter_draft(user, jenis, keperluan)
     nomor_pengajuan = generate_nomor_pengajuan()
 
@@ -229,8 +241,15 @@ def resubmit_application(id: int):
     if app_data['warga_id'] != user['user_id']:
         return jsonify({'success': False, 'message': 'Akses ditolak', 'data': None, 'error': 'FORBIDDEN'}), 403
 
-    data = request.form.to_dict() if not request.is_json else (request.get_json() or {})
-    keperluan = data.get('keperluan', app_data['keperluan'])
+    if request.is_json:
+        parsed_data = request.get_json(silent=True)
+        data = parsed_data if isinstance(parsed_data, dict) else {}
+    else:
+        data = request.form.to_dict()
+    keperluan_value = data.get('keperluan', app_data['keperluan'])
+    keperluan = keperluan_value.strip() if isinstance(keperluan_value, str) else ''
+    if not keperluan or len(keperluan) > 2000:
+        return jsonify({'success': False, 'message': 'Keperluan wajib diisi dan maksimal 2000 karakter', 'data': None, 'error': 'VALIDATION_ERROR'}), 400
 
     jenis = query_one("SELECT * FROM jenis_surat WHERE jenis_surat_id = %s", (app_data['jenis_surat_id'],))
     new_draft = generate_letter_draft(user, jenis, keperluan)
@@ -254,9 +273,11 @@ def resubmit_application(id: int):
 @roles_accepted('rt', 'admin')
 def submit_decision(id: int):
     """API-010: Keputusan evaluasi Ketua RT (approve / revise / reject)"""
-    data = request.get_json() or {}
+    parsed_data = request.get_json(silent=True)
+    data = parsed_data if isinstance(parsed_data, dict) else {}
     action = data.get('action') # 'approve', 'revise', 'reject'
-    catatan = (data.get('catatan') or data.get('alasan') or '').strip()
+    note_value = data.get('catatan') or data.get('alasan') or ''
+    catatan = note_value.strip() if isinstance(note_value, str) else ''
 
     if action not in ['approve', 'revise', 'reject']:
         return jsonify({
@@ -346,10 +367,24 @@ def sign_digital(id: int):
     API-011: Otorisasi digital PIN Ketua RT & pembuatan dokumen PDF resmi 
     dengan tempelan gambar tanda tangan digital (UC-09).
     """
-    data = request.get_json() or {}
-    pin = str(data.get('pin', '')).strip()
+    parsed_data = request.get_json(silent=True)
+    data = parsed_data if isinstance(parsed_data, dict) else {}
+    pin_value = data.get('pin', '')
+    pin = pin_value.strip() if isinstance(pin_value, str) else ''
 
-    if pin != Config.DEFAULT_RT_PIN:
+    if not Config.RT_SIGNING_PIN_HASH:
+        return jsonify({
+            'success': False,
+            'message': 'Otorisasi tanda tangan belum dikonfigurasi pada server',
+            'data': None,
+            'error': 'SIGNING_NOT_CONFIGURED'
+        }), 503
+
+    try:
+        pin_is_valid = bcrypt.checkpw(pin.encode('utf-8'), Config.RT_SIGNING_PIN_HASH.encode('utf-8'))
+    except ValueError:
+        pin_is_valid = False
+    if not pin_is_valid:
         return jsonify({
             'success': False,
             'message': 'PIN Otorisasi Ketua RT salah',
@@ -369,8 +404,17 @@ def sign_digital(id: int):
 
     if not app_data:
         return jsonify({'success': False, 'message': 'Pengajuan surat tidak ditemukan', 'data': None, 'error': 'NOT_FOUND'}), 404
+    if app_data['status'] != 'disetujui':
+        return jsonify({'success': False, 'message': 'Pengajuan harus disetujui sebelum ditandatangani', 'data': None, 'error': 'INVALID_STATUS'}), 409
 
     rt_user = request.current_user
+    if Config.IS_PRODUCTION and not rt_user.get('tanda_tangan_url'):
+        return jsonify({
+            'success': False,
+            'message': 'Unggah gambar tanda tangan Ketua RT sebelum menerbitkan surat digital',
+            'data': None,
+            'error': 'SIGNATURE_NOT_CONFIGURED'
+        }), 409
     nomor_resmi = generate_nomor_surat_resmi(app_data['kode_surat'])
 
     # Buat PDF resmi dengan tempelan gambar tanda tangan digital
@@ -384,8 +428,14 @@ def sign_digital(id: int):
         output_filename=pdf_filename
     )
 
-    rel_pdf_path = f"uploads/generated_letters/{pdf_filename}"
-    token_verif = f"SIGN-RT032-{app_data['nomor_pengajuan']}-{random.randint(1000, 9999)}"
+    rel_pdf_path = f"generated_letters/{pdf_filename}"
+    try:
+        with open(pdf_path, 'rb') as generated_pdf:
+            store_bytes(rel_pdf_path, generated_pdf.read(), 'application/pdf')
+    finally:
+        if Config.STORAGE_BACKEND == 's3' and os.path.exists(pdf_path):
+            os.remove(pdf_path)
+    token_verif = secrets.token_urlsafe(32)
 
     # Simpan atau update ke tabel surat_final
     existing_sf = query_one("SELECT surat_final_id FROM surat_final WHERE pengajuan_id = %s", (id,))
@@ -419,7 +469,7 @@ def sign_digital(id: int):
 
     return jsonify({
         'success': True,
-        'message': 'Tanda tangan digital berhasil disematkan',
+        'message': 'PDF diterbitkan dan gambar tanda tangan disematkan',
         'data': {
             'pengajuan_id': id,
             'status': 'selesai',
@@ -472,11 +522,11 @@ def download_letter_pdf(id: int):
     if not sf or not sf['file_pdf_path']:
         return jsonify({'success': False, 'message': 'Dokumen PDF surat belum disahkan atau belum tersedia', 'data': None, 'error': 'NOT_FOUND'}), 404
 
-    rel_path = sf['file_pdf_path']
-    full_path = os.path.join(Config.BASE_DIR, rel_path) if not os.path.isabs(rel_path) else rel_path
-
-    if not os.path.exists(full_path):
+    storage_key = sf['file_pdf_path']
+    try:
+        pdf_bytes = read_bytes(storage_key)
+    except FileNotFoundError:
         return jsonify({'success': False, 'message': 'File fisik PDF tidak ditemukan di server', 'data': None, 'error': 'FILE_NOT_FOUND'}), 404
 
-    filename = os.path.basename(full_path)
-    return send_file(full_path, mimetype='application/pdf', as_attachment=True, download_name=filename)
+    filename = PurePosixPath(storage_key).name
+    return send_file(BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)

@@ -10,19 +10,20 @@ chatbot_bp = Blueprint('chatbot', __name__, url_prefix='/api/v1/chatbot')
 @roles_accepted('warga')
 def ask_chatbot():
     """
-    API-014: Mengajukan pertanyaan ke RAG Chatbot Tanya RT.
-    Bila kecocokan >= 0.70: memberikan jawaban resmi.
-    Bila < 0.70: mengarahkan eskalasi ke WhatsApp Ketua RT.
+    API-014: Search the Tanya RT knowledge base and escalate low matches.
+    Uses the configured lexical-retrieval threshold; low matches are escalated.
     """
     user = request.current_user
-    data = request.get_json() or {}
-    query_text = (data.get('query') or data.get('pertanyaan') or '').strip()
+    parsed_data = request.get_json(silent=True)
+    data = parsed_data if isinstance(parsed_data, dict) else {}
+    query_value = data.get('query') or data.get('pertanyaan')
+    query_text = query_value.strip() if isinstance(query_value, str) else ''
     session_id = data.get('session_id')
 
-    if not query_text:
+    if not query_text or len(query_text) > 2000:
         return jsonify({
             'success': False,
-            'message': 'Pertanyaan tidak boleh kosong',
+            'message': 'Pertanyaan wajib diisi dan maksimal 2000 karakter',
             'data': None,
             'error': 'EMPTY_QUERY'
         }), 400
@@ -34,12 +35,15 @@ def ask_chatbot():
             (user['user_id'],)
         )
     else:
+        try:
+            session_id = int(session_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'ID sesi tidak valid', 'data': None, 'error': 'INVALID_SESSION'}), 400
         existing = query_one("SELECT session_id, warga_id FROM chat_sessions WHERE session_id = %s", (session_id,))
         if not existing:
-            session_id = execute(
-                "INSERT INTO chat_sessions (warga_id, status_sesi) VALUES (%s, 'berlangsung')",
-                (user['user_id'],)
-            )
+            return jsonify({'success': False, 'message': 'Sesi tidak ditemukan', 'data': None, 'error': 'NOT_FOUND'}), 404
+        if existing['warga_id'] != user['user_id']:
+            return jsonify({'success': False, 'message': 'Akses ditolak', 'data': None, 'error': 'FORBIDDEN'}), 403
 
     # 1. Catat pertanyaan warga ke tabel chat_messages
     execute(
@@ -47,7 +51,7 @@ def ask_chatbot():
         (session_id, query_text)
     )
 
-    # 2. Proses pencarian informasi via RAG
+    # 2. Find matching knowledge with lexical retrieval
     rag_result = search_knowledge_base(query_text)
 
     # 3. Catat balasan sistem AI ke tabel chat_messages

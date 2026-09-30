@@ -3,7 +3,7 @@ import re
 import urllib.parse
 from collections import Counter
 from config import Config
-from database.db import query_all, query_one
+from database.db import query_all
 
 INDONESIAN_STOPWORDS = {
     'yang', 'di', 'dan', 'ini', 'itu', 'ke', 'dari', 'untuk', 'pada', 'dengan', 
@@ -45,21 +45,20 @@ def compute_cosine_similarity(vec1: dict, vec2: dict) -> float:
 
 def search_knowledge_base(query: str) -> dict:
     """
-    Mencari informasi paling relevan dari knowledge_chunks.
-    Bila similarity_score >= Config.RAG_SIMILARITY_THRESHOLD (0.70):
-        Mengembalikan jawaban resmi yang tertera di dokumen RT.
-    Bila < 0.70:
-        Mengembalikan fallback eskalasi ke WhatsApp Ketua RT.
+    Rank chunks with lexical cosine and Indonesian stem coverage.
+    The returned score is a heuristic retrieval score, not model confidence.
     """
     query_tokens = tokenize(query)
     if not query_tokens:
         return {
             'is_escalated': True,
-            'answer': 'Pertanyaan tidak dapat dipahami. Silakan masukkan pertanyaan yang lebih jelas.',
+            'answer': 'Pertanyaan tidak dapat dipahami. Silakan masukkan pertanyaan yang lebih jelas. '
+                      + (f"Anda juga dapat menghubungi Ketua RT melalui WhatsApp: https://wa.me/{Config.RT_WHATSAPP_NUMBER}"
+                         if Config.RT_WHATSAPP_NUMBER else f"Silakan hubungi {Config.RT_NAME} secara langsung."),
             'citation': None,
             'similarity_score': 0.0,
             'top_chunk_id': None,
-            'escalation_whatsapp_url': f"https://wa.me/{Config.RT_WHATSAPP_NUMBER}"
+            'escalation_whatsapp_url': f"https://wa.me/{Config.RT_WHATSAPP_NUMBER}" if Config.RT_WHATSAPP_NUMBER else None
         }
 
     q_stems = [simple_stem(w) for w in query_tokens]
@@ -85,7 +84,7 @@ def search_knowledge_base(query: str) -> dict:
 
         c_stems = [simple_stem(w) for w in chunk_tokens]
 
-        # 1. Cosine similarity
+        # Lexical cosine similarity over term-frequency vectors.
         chunk_vec = Counter(chunk_tokens)
         cos_score = compute_cosine_similarity(query_vec, chunk_vec)
 
@@ -121,17 +120,21 @@ def search_knowledge_base(query: str) -> dict:
         }
     else:
         # Fallback Eskalasi WhatsApp
-        encoded_query = urllib.parse.quote(f"Halo Pak RT, saya warga RT 032 ingin menanyakan perihal: {query}")
-        wa_url = f"https://wa.me/{Config.RT_WHATSAPP_NUMBER}?text={encoded_query}"
+        encoded_query = urllib.parse.quote(f"Halo {Config.RT_NAME}, saya warga {Config.RT_AREA} ingin menanyakan perihal: {query}")
 
         return {
             'is_escalated': True,
             'answer': (
-                "Maaf, informasi tersebut belum tercatat dalam basis data resmi RT 032. "
-                "Silakan tanyakan langsung ke Ketua RT via WhatsApp melalui tombol di bawah."
+                f"Maaf, informasi tersebut belum tercatat dalam basis data resmi {Config.RT_AREA}. "
+                + ("Silakan hubungi Ketua RT melalui tombol WhatsApp di bawah."
+                   if Config.RT_WHATSAPP_NUMBER
+                   else "Silakan hubungi Ketua RT secara langsung.")
             ),
             'citation': None,
             'similarity_score': round(best_score, 4) if best_chunk else 0.0,
             'top_chunk_id': None,
-            'escalation_whatsapp_url': wa_url
+            'escalation_whatsapp_url': (
+                f"https://wa.me/{Config.RT_WHATSAPP_NUMBER}?text={encoded_query}"
+                if Config.RT_WHATSAPP_NUMBER else None
+            )
         }

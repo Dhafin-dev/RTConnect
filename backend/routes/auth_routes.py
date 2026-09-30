@@ -1,10 +1,11 @@
-import os
 import bcrypt
+import re
 from flask import Blueprint, request, jsonify
-from werkzeug.utils import secure_filename
+from pymysql.err import IntegrityError
 from config import Config
 from database.db import query_one, execute
 from middleware.auth_middleware import generate_token, jwt_required
+from services.file_storage import store_upload
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -22,18 +23,19 @@ def register():
     """API-001: Pendaftaran akun warga baru"""
     # Dukung baik multipart/form-data maupun application/json
     if request.is_json:
-        data = request.get_json() or {}
+        parsed_data = request.get_json(silent=True)
+        data = parsed_data if isinstance(parsed_data, dict) else {}
         sig_file = None
     else:
         data = request.form.to_dict()
         sig_file = request.files.get('tanda_tangan')
 
-    nik = (data.get('nik') or '').strip()
-    nama_lengkap = (data.get('nama_lengkap') or '').strip()
-    email = (data.get('email') or '').strip()
-    password = (data.get('password') or '').strip()
-    nomor_telepon = (data.get('nomor_telepon') or '').strip()
-    alamat = (data.get('alamat') or '').strip()
+    nik = data.get('nik', '').strip() if isinstance(data.get('nik'), str) else ''
+    nama_lengkap = data.get('nama_lengkap', '').strip() if isinstance(data.get('nama_lengkap'), str) else ''
+    email = data.get('email', '').strip() if isinstance(data.get('email'), str) else ''
+    password = data.get('password', '') if isinstance(data.get('password'), str) else ''
+    nomor_telepon = data.get('nomor_telepon', '').strip() if isinstance(data.get('nomor_telepon'), str) else ''
+    alamat = data.get('alamat', '').strip() if isinstance(data.get('alamat'), str) else ''
 
     # Validasi input
     if not (nik and nama_lengkap and email and password and nomor_telepon and alamat):
@@ -52,6 +54,25 @@ def register():
             'error': 'INVALID_NIK'
         }), 400
 
+    if len(password) < 12 or len(password.encode('utf-8')) > 72:
+        return jsonify({
+            'success': False,
+            'message': 'Password harus 12 sampai 72 byte',
+            'data': None,
+            'error': 'INVALID_PASSWORD'
+        }), 400
+
+    email = email.lower()
+    if (len(nama_lengkap) > 100 or len(email) > 100
+            or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email)
+            or len(nomor_telepon) > 20 or len(alamat) > 255):
+        return jsonify({
+            'success': False,
+            'message': 'Nama (maks. 100), email valid (maks. 100), telepon (maks. 20), dan alamat (maks. 255) harus diisi dengan benar',
+            'data': None,
+            'error': 'INVALID_PROFILE'
+        }), 400
+
     # Cek duplikasi NIK atau Email
     existing = query_one("SELECT user_id, nik, email FROM users WHERE nik = %s OR email = %s", (nik, email))
     if existing:
@@ -63,23 +84,34 @@ def register():
             'error': 'DUPLICATE_ENTRY'
         }), 400
 
-    # Simpan tanda tangan digital jika diunggah
-    sig_path_rel = None
+    # Simpan tanda tangan setelah memeriksa format konten dan ukuran file.
+    signature_key = None
     if sig_file and sig_file.filename:
-        filename = f"sig_{nik}_{secure_filename(sig_file.filename)}"
-        save_path = os.path.join(Config.SIGNATURES_FOLDER, filename)
-        sig_file.save(save_path)
-        sig_path_rel = f"uploads/signatures/{filename}"
-    else:
-        sig_path_rel = 'uploads/signatures/warga_dafin_signature.png'
+        try:
+            signature_key = store_upload(sig_file, 'signatures')
+        except ValueError as error:
+            return jsonify({
+                'success': False,
+                'message': str(error),
+                'data': None,
+                'error': 'INVALID_UPLOAD'
+            }), 400
 
     pw_hash = hash_password(password)
-    user_id = execute(
-        """INSERT INTO users 
-           (nik, nama_lengkap, email, password_hash, nomor_telepon, alamat, nomor_rt, nomor_rw, role, tanda_tangan_digital) 
-           VALUES (%s, %s, %s, %s, %s, %s, '032', '08', 'warga', %s)""",
-        (nik, nama_lengkap, email, pw_hash, nomor_telepon, alamat, sig_path_rel)
-    )
+    try:
+        user_id = execute(
+            """INSERT INTO users
+               (nik, nama_lengkap, email, password_hash, nomor_telepon, alamat, nomor_rt, nomor_rw, role, tanda_tangan_url)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'warga', %s)""",
+            (nik, nama_lengkap, email, pw_hash, nomor_telepon, alamat, Config.RT_NUMBER, Config.RW_NUMBER, signature_key)
+        )
+    except IntegrityError:
+        return jsonify({
+            'success': False,
+            'message': 'NIK atau email tersebut sudah terdaftar dalam sistem RTConnect',
+            'data': None,
+            'error': 'DUPLICATE_ENTRY'
+        }), 409
 
     return jsonify({
         'success': True,
@@ -96,9 +128,11 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """API-002: Login dengan Email/NIK dan Password"""
-    data = request.get_json() or {}
-    identity = (data.get('identity') or data.get('email') or '').strip()
-    password = (data.get('password') or '').strip()
+    parsed_data = request.get_json(silent=True)
+    data = parsed_data if isinstance(parsed_data, dict) else {}
+    identity_value = data.get('identity') or data.get('email')
+    identity = identity_value.strip() if isinstance(identity_value, str) else ''
+    password = data.get('password') if isinstance(data.get('password'), str) else ''
 
     if not identity or not password:
         return jsonify({
@@ -169,7 +203,7 @@ def get_current_user_profile():
             'nomor_rt': user['nomor_rt'],
             'nomor_rw': user['nomor_rw'],
             'role': user['role'],
-            'tanda_tangan_digital': user['tanda_tangan_digital']
+            'tanda_tangan_digital': user['tanda_tangan_url']
         },
         'error': None
     }), 200

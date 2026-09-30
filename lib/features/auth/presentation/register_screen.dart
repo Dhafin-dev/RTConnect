@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -120,7 +121,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 const Text(
-                  'Daftarkan diri Anda sebagai warga RT 032 RW 08 Griya Taman Asri.',
+                  'Daftarkan diri Anda sebagai warga ${AppConstants.rtArea}.',
                   style: AppTypography.bodySmall,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -163,7 +164,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   hint: 'Minimal 6 karakter',
                   controller: _passwordController,
                   isPassword: true,
-                  validator: AuthValidators.validatePassword,
+                  validator: AuthValidators.validateNewPassword,
                   prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -182,7 +183,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 // Alamat
                 RTTextField(
                   label: 'Alamat Rumah',
-                  hint: 'Contoh: Griya Taman Asri Blok B-12',
+                  hint: 'Contoh: Jalan Melati No. 12',
                   controller: _alamatController,
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Alamat wajib diisi' : null,
                   prefixIcon: const Icon(Icons.home_outlined, color: AppColors.textSecondary),

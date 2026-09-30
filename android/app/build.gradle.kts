@@ -4,6 +4,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseSigningProperties = java.util.Properties().apply {
+    val propertiesFile = rootProject.file("key.properties")
+    if (propertiesFile.exists()) {
+        propertiesFile.inputStream().use { load(it) }
+    }
+}
+val releaseStorePath = releaseSigningProperties.getProperty("storeFile")
+val releaseSigningConfigured = listOf("storePassword", "keyPassword", "keyAlias")
+    .all { !releaseSigningProperties.getProperty(it).isNullOrBlank() } && !releaseStorePath.isNullOrBlank()
+
 android {
     namespace = "id.rtconnect.app"
     compileSdk = flutter.compileSdkVersion
@@ -28,11 +38,20 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            if (releaseSigningConfigured) {
+                storeFile = rootProject.file(releaseStorePath!!)
+                storePassword = releaseSigningProperties.getProperty("storePassword")
+                keyPassword = releaseSigningProperties.getProperty("keyPassword")
+                keyAlias = releaseSigningProperties.getProperty("keyAlias")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

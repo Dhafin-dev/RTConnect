@@ -283,7 +283,7 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
                       children: [
                         Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
                         SizedBox(width: AppSpacing.xs),
-                        Text('Draf Narasi Surat (Hasil Formulasi AI)', style: AppTypography.labelBold),
+                        Text('Draf Narasi Surat (Template Otomatis)', style: AppTypography.labelBold),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xs),

@@ -70,7 +70,7 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.success,
-            content: Text('Permohonan surat berhasil dikirim! Draf AI sedang disiapkan.'),
+            content: Text('Permohonan surat berhasil dikirim! Draf surat otomatis telah disiapkan untuk ditinjau.'),
           ),
         );
         context.go(RouteNames.wargaPengajuan);
@@ -125,7 +125,7 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'Sistem didukung Generative AI untuk menyusun draf narasi surat secara otomatis.',
+                          'Draf narasi surat disusun otomatis dari template untuk ditinjau Ketua RT.',
                           style: AppTypography.bodySmall.copyWith(color: AppColors.primary),
                         ),
                       ),
@@ -192,7 +192,7 @@ class _LetterApplicationScreenState extends ConsumerState<LetterApplicationScree
                 // Rincian Keperluan
                 RTTextField(
                   label: 'Keperluan / Tujuan Surat',
-                  hint: 'Contoh: Persyaratan pembukaan rekening bank syariah cabang Sidoarjo',
+                  hint: 'Contoh: Persyaratan pembukaan rekening bank',
                   controller: _keperluanController,
                   maxLines: 3,
                   validator: (v) => (v == null || v.trim().length < 5) ? 'Mohon jelaskan keperluan minimal 5 karakter' : null,

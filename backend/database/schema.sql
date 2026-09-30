@@ -3,11 +3,6 @@
 -- Sesuai database.md & revisi UC-09 (TTD Digital Tempelan Gambar)
 -- ====================================================================
 
-CREATE DATABASE IF NOT EXISTS `rtconnect_db` 
-DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE `rtconnect_db`;
-
 -- 1. TABEL PENGGUNA TERPUSAT (UNIFIED USERS)
 CREATE TABLE IF NOT EXISTS `users` (
   `user_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -20,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `nomor_rt` VARCHAR(5) DEFAULT '032',
   `nomor_rw` VARCHAR(5) DEFAULT '08',
   `role` ENUM('warga', 'rt', 'admin') NOT NULL DEFAULT 'warga',
-  `tanda_tangan_url` VARCHAR(255) NULL COMMENT 'Path URL stempel tanda tangan',
+  `tanda_tangan_url` VARCHAR(512) NULL COMMENT 'Object key untuk gambar tanda tangan',
   `is_active` BOOLEAN DEFAULT TRUE,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -48,8 +43,8 @@ CREATE TABLE IF NOT EXISTS `pengajuan_surat` (
   `jenis_surat_id` INT NOT NULL,
   `keperluan` TEXT NOT NULL,
   `metode_tanda_tangan` ENUM('digital', 'basah') NOT NULL DEFAULT 'digital',
-  `berkas_lampiran_url` VARCHAR(255) NULL,
-  `draf_ai_konten` TEXT NULL COMMENT 'Hasil formulasi otomatis draf surat oleh LLM',
+  `berkas_lampiran_url` VARCHAR(512) NULL COMMENT 'Object key berkas lampiran',
+  `draf_ai_konten` TEXT NULL COMMENT 'Draf surat hasil template deterministik',
   `status` ENUM('diajukan', 'perlu_revisi', 'disetujui', 'ditolak', 'siap_diambil', 'selesai') NOT NULL DEFAULT 'diajukan',
   `catatan_revisi` VARCHAR(255) NULL,
   `alasan_penolakan` VARCHAR(255) NULL,
@@ -66,7 +61,8 @@ CREATE TABLE IF NOT EXISTS `surat_final` (
   `surat_final_id` INT AUTO_INCREMENT PRIMARY KEY,
   `pengajuan_id` INT NOT NULL UNIQUE,
   `nomor_surat_resmi` VARCHAR(100) NOT NULL UNIQUE,
-  `file_pdf_path` VARCHAR(255) NOT NULL,
+  `file_pdf_path` VARCHAR(512) NOT NULL COMMENT 'Object key PDF surat',
+  `qr_verification_token` VARCHAR(128) NULL UNIQUE,
   `signature_image_path` VARCHAR(255) NULL COMMENT 'Path stempel tanda tangan digital yang disematkan',
   `status_pengesahan` ENUM('digital_sah', 'basah_selesai') NOT NULL,
   `tanggal_terbit` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -74,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `surat_final` (
   CONSTRAINT `fk_surat_pengajuan` FOREIGN KEY (`pengajuan_id`) REFERENCES `pengajuan_surat` (`pengajuan_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 5. KLASTER CHATBOT TANYA RT (RAG KNOWLEDGE BASE)
+-- 5. BASIS PENGETAHUAN UNTUK PENCARIAN LEKSIKAL CHATBOT TANYA RT
 CREATE TABLE IF NOT EXISTS `knowledge_base` (
   `knowledge_id` INT AUTO_INCREMENT PRIMARY KEY,
   `judul_dokumen` VARCHAR(150) NOT NULL,

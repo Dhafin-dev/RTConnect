@@ -22,8 +22,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController(text: 'dafin@gmail.com');
-  final _passwordController = TextEditingController(text: '123456');
+  final _identifierController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -104,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             TextField(
               controller: controller,
               decoration: const InputDecoration(
-                hintText: 'http://10.11.13.24:5000/api/v1',
+                hintText: 'https://api.example.com/api/v1',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -165,8 +165,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'RTConnect',
                   style: AppTypography.heading1.copyWith(color: AppColors.primary),
                 ),
-                const Text(
-                  'Pelayanan Administrasi RT 032 RW 08',
+                Text(
+                  AppConstants.appTagline,
                   style: AppTypography.bodySmall,
                 ),
                 const SizedBox(height: AppSpacing.xl),

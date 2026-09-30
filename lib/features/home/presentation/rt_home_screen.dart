@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -26,7 +27,7 @@ class RTHomeScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('RTConnect — Panel RT', style: AppTypography.heading3.copyWith(color: AppColors.primary)),
-            const Text('RT 032 RW 08 Griya Taman Asri', style: AppTypography.caption),
+            const Text(AppConstants.rtArea, style: AppTypography.caption),
           ],
         ),
         backgroundColor: AppColors.surface,
@@ -132,7 +133,7 @@ class RTHomeScreen extends ConsumerWidget {
                     child: Icon(Icons.rate_review_outlined, color: AppColors.primary),
                   ),
                   title: const Text('Buka Antrean Verifikasi Surat', style: AppTypography.labelBold),
-                  subtitle: const Text('Tinjau draf AI, sahkan TTD digital, atau setujui TTD basah.', style: AppTypography.caption),
+                  subtitle: const Text('Tinjau draf surat, tempel tanda tangan pada PDF, atau setujui tanda tangan basah.', style: AppTypography.caption),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () => context.push(RouteNames.rtQueue),
                 ),
@@ -146,8 +147,8 @@ class RTHomeScreen extends ConsumerWidget {
                     backgroundColor: Color(0xFFF0FDF4),
                     child: Icon(Icons.chat_bubble_outline, color: AppColors.success),
                   ),
-                  title: const Text('Uji Coba Tanya RT (RAG)', style: AppTypography.labelBold),
-                  subtitle: const Text('Pantau kecocokan data peraturan RT dan simulasi asisten AI.', style: AppTypography.caption),
+                  title: const Text('Tanya RT', style: AppTypography.labelBold),
+                  subtitle: const Text('Lihat informasi yang tersedia di basis pengetahuan.', style: AppTypography.caption),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () => context.push(RouteNames.chatbot),
                 ),

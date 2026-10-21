@@ -5,6 +5,7 @@ import '../../core/router/route_names.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../features/auth/presentation/auth_controller.dart';
+import '../../features/notifications/presentation/notification_controller.dart';
 
 /// COMP-SHR-003: RTDrawerMenu grounded in Figma Hi-Fi "Profile Side Drawer - RTConnect" (#68:1902)
 class RTDrawerMenu extends ConsumerWidget {
@@ -32,6 +33,7 @@ class RTDrawerMenu extends ConsumerWidget {
     final effectiveEmail = userEmail ?? user?.email ?? 'warga@rtconnect.id';
     final effectiveRole = userRole ?? (user?.role ?? 'warga');
     final isRT = effectiveRole.toLowerCase() == 'rt';
+    final unreadNotificationCount = ref.watch(unreadNotificationCountProvider);
 
     return Drawer(
       width: 335.0,
@@ -198,24 +200,29 @@ class RTDrawerMenu extends ConsumerWidget {
                   _buildDrawerMenuTile(
                     icon: Icons.notifications_none_rounded,
                     title: 'Notifikasi',
-                    badge: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.badgeNotification,
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                      child: const Text(
-                        '2 Baru',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
+                    badge: unreadNotificationCount > 0
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.badgeNotification,
+                              borderRadius: BorderRadius.circular(9999),
+                            ),
+                            child: Text(
+                              unreadNotificationCount > 99
+                                  ? '99+ Baru'
+                                  : '$unreadNotificationCount Baru',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : null,
+                    onTap: () async {
                       Navigator.pop(context);
-                      context.push(RouteNames.notifications);
+                      await context.push(RouteNames.notifications);
+                      ref.invalidate(notificationsProvider);
                     },
                   ),
                   _buildDrawerMenuTile(

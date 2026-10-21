@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-
-final notificationsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
-  final client = ApiClient();
-  final res = await client.dio.get<Map<String, dynamic>>('/notifications');
-  return Map<String, dynamic>.from(res.data?['data'] as Map);
-});
+import 'notification_controller.dart';
 
 class NotificationFeedScreen extends ConsumerWidget {
   const NotificationFeedScreen({super.key});
@@ -30,8 +24,8 @@ class NotificationFeedScreen extends ConsumerWidget {
             icon: const Icon(Icons.done_all, color: AppColors.primary),
             tooltip: 'Tandai Semua Dibaca',
             onPressed: () async {
-              final client = ApiClient();
-              await client.dio.put<Map<String, dynamic>>('/notifications/read-all');
+              final repo = ref.read(notificationRepositoryProvider);
+              await repo.markAllAsRead();
               ref.invalidate(notificationsProvider);
             },
           ),
@@ -90,11 +84,38 @@ class NotificationFeedScreen extends ConsumerWidget {
                       ),
                       title: Text(judul, style: AppTypography.labelBold),
                       subtitle: Text(pesan, style: AppTypography.bodySmall),
+                      trailing: !isRead
+                          ? Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.badgeNotification,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : null,
                       onTap: () async {
                         if (!isRead) {
-                          final client = ApiClient();
-                          await client.dio.put<Map<String, dynamic>>('/notifications/$notifId/read');
+                          final repo = ref.read(notificationRepositoryProvider);
+                          await repo.markAsRead(notifId, isDibaca: true);
                           ref.invalidate(notificationsProvider);
+                        }
+                      },
+                      onLongPress: () async {
+                        final repo = ref.read(notificationRepositoryProvider);
+                        await repo.markAsRead(notifId, isDibaca: !isRead);
+                        ref.invalidate(notificationsProvider);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                !isRead
+                                    ? 'Notifikasi ditandai sudah dibaca'
+                                    : 'Notifikasi ditandai belum dibaca',
+                              ),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
                         }
                       },
                     ),

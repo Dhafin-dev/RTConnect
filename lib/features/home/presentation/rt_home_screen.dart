@@ -10,6 +10,7 @@ import '../../../shared/widgets/rt_drawer_menu.dart';
 import '../../../shared/widgets/rt_status_badge.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../letters/presentation/letter_controller.dart';
+import '../../notifications/presentation/notification_controller.dart';
 
 /// Screen 8: Beranda RT (Figma Node #83:1362)
 class RTHomeScreen extends ConsumerWidget {
@@ -20,6 +21,7 @@ class RTHomeScreen extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
     final queueAsync = ref.watch(incomingQueueProvider);
+    final unreadNotifs = ref.watch(unreadNotificationCountProvider);
 
     final rtName = user?.namaLengkap ?? 'Pak Bambang';
     final initial = rtName.isNotEmpty ? rtName[0].toUpperCase() : 'B';
@@ -102,20 +104,24 @@ class RTHomeScreen extends ConsumerWidget {
                           color: AppColors.textPrimary,
                           size: 24,
                         ),
-                        onPressed: () => context.push(RouteNames.notifications),
+                        onPressed: () async {
+                          await context.push(RouteNames.notifications);
+                          ref.invalidate(notificationsProvider);
+                        },
                       ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.error,
-                            shape: BoxShape.circle,
+                      if (unreadNotifs > 0)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
 
@@ -158,6 +164,7 @@ class RTHomeScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(incomingQueueProvider);
+            ref.invalidate(notificationsProvider);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

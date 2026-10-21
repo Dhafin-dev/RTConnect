@@ -11,6 +11,7 @@ import '../../../shared/widgets/rt_drawer_menu.dart';
 import '../../../shared/widgets/rt_status_badge.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../letters/presentation/letter_controller.dart';
+import '../../notifications/presentation/notification_controller.dart';
 
 /// Screen 4: Beranda Warga (Figma Node #68:3029)
 class WargaHomeScreen extends ConsumerWidget {
@@ -21,6 +22,7 @@ class WargaHomeScreen extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
     final myAppsAsync = ref.watch(myApplicationsProvider);
+    final unreadNotifs = ref.watch(unreadNotificationCountProvider);
 
     final namaWarga = user?.namaLengkap ?? 'Warga RT 04';
     final initial = namaWarga.isNotEmpty ? namaWarga[0].toUpperCase() : 'W';
@@ -102,20 +104,24 @@ class WargaHomeScreen extends ConsumerWidget {
                           color: AppColors.textPrimary,
                           size: 24,
                         ),
-                        onPressed: () => context.push(RouteNames.notifications),
+                        onPressed: () async {
+                          await context.push(RouteNames.notifications);
+                          ref.invalidate(notificationsProvider);
+                        },
                       ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.error,
-                            shape: BoxShape.circle,
+                      if (unreadNotifs > 0)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
 
@@ -165,6 +171,7 @@ class WargaHomeScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(myApplicationsProvider);
+            ref.invalidate(notificationsProvider);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

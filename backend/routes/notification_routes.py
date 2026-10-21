@@ -32,13 +32,15 @@ def get_notifications():
 @notification_bp.route('/<int:id>/read', methods=['PUT'])
 @jwt_required
 def mark_as_read(id: int):
-    """Menandai satu notifikasi telah dibaca"""
+    """Menandai satu notifikasi telah dibaca / toggle status baca"""
     user_id = request.current_user['user_id']
-    execute("UPDATE notifikasi SET is_dibaca = 1 WHERE notifikasi_id = %s AND penerima_id = %s", (id, user_id))
+    data = request.get_json(silent=True) or {}
+    is_dibaca = 1 if data.get('is_dibaca', True) else 0
+    execute("UPDATE notifikasi SET is_dibaca = %s WHERE notifikasi_id = %s AND penerima_id = %s", (is_dibaca, id, user_id))
     return jsonify({
         'success': True,
-        'message': 'Notifikasi ditandai telah dibaca',
-        'data': {'notifikasi_id': id, 'is_dibaca': True},
+        'message': 'Status notifikasi berhasil diperbarui',
+        'data': {'notifikasi_id': id, 'is_dibaca': bool(is_dibaca)},
         'error': None
     }), 200
 

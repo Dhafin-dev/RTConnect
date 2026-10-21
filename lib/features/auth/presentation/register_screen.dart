@@ -248,7 +248,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       // 6. Kata Sandi (Figma #69:4092)
                       RTTextField(
                         label: 'Kata Sandi',
-                        hint: 'Minimal 6 karakter',
+                        hint: 'Minimal 12 karakter',
                         isRequired: true,
                         controller: _passwordController,
                         isPassword: true,

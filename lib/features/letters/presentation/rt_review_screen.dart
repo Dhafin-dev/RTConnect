@@ -1,13 +1,14 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../shared/widgets/rt_status_badge.dart';
 import 'letter_controller.dart';
 
+/// Screen 9: Pengajuan Warga - Ketua RT (Figma Node #68:2321)
 class RTReviewScreen extends ConsumerStatefulWidget {
   final int? selectedApplicationId;
 
@@ -18,168 +19,14 @@ class RTReviewScreen extends ConsumerStatefulWidget {
 }
 
 class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
-  final _pinController = TextEditingController();
-  final _noteController = TextEditingController();
+  String _selectedFilter = 'semua';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void dispose() {
-    _pinController.dispose();
-    _noteController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  void _showDigitalSignDialog(int id, String namaWarga, String namaSurat) {
-    _pinController.clear();
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.draw, color: AppColors.primary),
-              SizedBox(width: AppSpacing.xs),
-              Text('Pengesahan Surat dengan PIN', style: AppTypography.heading3),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Anda akan mengesahkan $namaSurat untuk warga $namaWarga.',
-                style: AppTypography.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              const Text(
-                'Sistem menempelkan gambar tanda tangan Ketua RT ke PDF setelah memeriksa PIN. PDF ini tidak memiliki tanda tangan kriptografis.',
-                style: AppTypography.caption,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: _pinController,
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                maxLength: 72,
-                decoration: InputDecoration(
-                  labelText: 'PIN Otorisasi RT',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  prefixIcon: const Icon(Icons.lock_outline),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              onPressed: () async {
-                final pin = _pinController.text.trim();
-                Navigator.pop(dialogCtx);
-                final success = await ref.read(letterSubmitControllerProvider.notifier).signDigital(id, pin);
-                if (!mounted) return;
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text('PDF diterbitkan dan gambar tanda tangan disematkan.'),
-                    ),
-                  );
-                  unawaited(context.push('/surat/preview/$id'));
-                } else {
-                  final err = ref.read(letterSubmitControllerProvider).errorMessage ?? 'Gagal menandatangani';
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(backgroundColor: AppColors.error, content: Text(err)),
-                  );
-                }
-              },
-              child: const Text('Sahkan Dokumen', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showRevisionDialog(int id) {
-    _noteController.clear();
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          title: const Text('Minta Perbaikan (Revisi)', style: AppTypography.heading3),
-          content: TextField(
-            controller: _noteController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Tuliskan catatan perbaikan untuk warga...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Batal')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800),
-              onPressed: () async {
-                final note = _noteController.text.trim();
-                if (note.isEmpty) return;
-                Navigator.pop(dialogCtx);
-                final success = await ref.read(letterSubmitControllerProvider.notifier).submitDecision(id, 'revise', note);
-                if (!mounted) return;
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(backgroundColor: Colors.amber, content: Text('Permintaan revisi telah dikirim ke warga')),
-                  );
-                }
-              },
-              child: const Text('Kirim Revisi', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showRejectDialog(int id) {
-    _noteController.clear();
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          title: const Text('Tolak Permohonan Surat', style: AppTypography.heading3),
-          content: TextField(
-            controller: _noteController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Tuliskan alasan penolakan surat...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Batal')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
-              onPressed: () async {
-                final reason = _noteController.text.trim();
-                if (reason.isEmpty) return;
-                Navigator.pop(dialogCtx);
-                final success = await ref.read(letterSubmitControllerProvider.notifier).submitDecision(id, 'reject', reason);
-                if (!mounted) return;
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(backgroundColor: Colors.red, content: Text('Permohonan surat telah ditolak')),
-                  );
-                }
-              },
-              child: const Text('Tolak Surat', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -187,146 +34,467 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
     final queueAsync = ref.watch(incomingQueueProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Antrean Surat Masuk RT', style: AppTypography.heading3),
-        centerTitle: true,
-        backgroundColor: AppColors.surface,
+        title: Text(
+          'Antrean Pengajuan Warga',
+          style: AppTypography.heading3.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
+          onPressed: () => context.go(RouteNames.rtHome),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.primary),
+            icon: const Icon(Icons.refresh, color: AppColors.primaryAccent),
+            tooltip: 'Segarkan Data',
             onPressed: () => ref.refresh(incomingQueueProvider),
           ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1.0),
+          child: Divider(height: 1.0, color: AppColors.border),
+        ),
       ),
       body: SafeArea(
-        child: queueAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                const SizedBox(height: AppSpacing.sm),
-                Text('Gagal memuat antrean: $err', style: AppTypography.bodySmall),
-                TextButton(
-                  onPressed: () => ref.refresh(incomingQueueProvider),
-                  child: const Text('Muat Ulang'),
-                ),
-              ],
-            ),
-          ),
-          data: (queue) {
-            if (queue.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text('Antrean Masuk Kosong', style: AppTypography.heading3),
-                    const Text('Saat ini tidak ada permohonan surat yang menunggu tindakan.', style: AppTypography.caption),
-                  ],
-                ),
-              );
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async => ref.refresh(incomingQueueProvider),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                itemCount: queue.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (context, index) {
-                  final item = queue[index];
-                  final id = item['pengajuan_id'] as int;
-                  final nomorPengajuan = item['nomor_pengajuan']?.toString() ?? '-';
-                  final namaSurat = item['nama_surat']?.toString() ?? 'Surat Pengantar';
-                  final namaWarga = item['nama_lengkap']?.toString() ?? '-';
-                  final alamat = item['alamat']?.toString() ?? '-';
-                  final keperluan = item['keperluan']?.toString() ?? '-';
-                  final status = item['status']?.toString() ?? 'diajukan';
-                  final metode = item['metode_tanda_tangan']?.toString() ?? 'digital';
-
-                  return Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(nomorPengajuan, style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
-                              RTStatusBadge(status: status),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(namaSurat, style: AppTypography.heading3),
-                          Text('Pemohon: $namaWarga ($alamat)', style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text('Keperluan: $keperluan', style: AppTypography.bodySmall),
-                          const SizedBox(height: AppSpacing.sm),
-                          Row(
-                            children: [
-                              Icon(
-                                metode == 'digital' ? Icons.draw : Icons.edit_note,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                metode == 'digital' ? 'Metode: TTD Digital' : 'Metode: TTD Basah',
-                                style: AppTypography.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-
-                          // Tombol Aksi Evaluasi RT
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                  onPressed: () {
-                                    if (metode == 'digital') {
-                                      _showDigitalSignDialog(id, namaWarga, namaSurat);
-                                    } else {
-                                      ref.read(letterSubmitControllerProvider.notifier).confirmPhysical(id);
-                                    }
-                                  },
-                                  icon: Icon(metode == 'digital' ? Icons.check_circle_outline : Icons.store, color: Colors.white, size: 18),
-                                  label: Text(metode == 'digital' ? 'Terbitkan PDF' : 'Siap Diambil', style: const TextStyle(color: Colors.white)),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.xs),
-                              IconButton(
-                                icon: const Icon(Icons.edit_note, color: Colors.amber),
-                                tooltip: 'Minta Revisi',
-                                onPressed: () => _showRevisionDialog(id),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-                                tooltip: 'Tolak',
-                                onPressed: () => _showRejectDialog(id),
-                              ),
-                            ],
-                          ),
-                        ],
+        child: Column(
+          children: [
+            // Search Bar & Filter Header
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.sm,
+              ),
+              child: Column(
+                children: [
+                  // Search Box
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) =>
+                          setState(() => _searchQuery = val.toLowerCase()),
+                      style: AppTypography.bodySmall,
+                      decoration: const InputDecoration(
+                        hintText: 'Cari nama warga, nomor, atau surat...',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Color(0xFF64748B),
+                          size: 20,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Horizontal Filter Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('Semua', 'semua'),
+                        _buildFilterChip('Perlu Review', 'diajukan'),
+                        _buildFilterChip('Perlu Revisi', 'perlu revisi', isAlert: true),
+                        _buildFilterChip('Disetujui', 'disetujui'),
+                        _buildFilterChip('Selesai', 'selesai'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+
+            // Queue List
+            Expanded(
+              child: queueAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text('Gagal memuat antrean: $err',
+                          style: AppTypography.bodySmall),
+                      TextButton(
+                        onPressed: () => ref.refresh(incomingQueueProvider),
+                        child: const Text('Muat Ulang'),
+                      ),
+                    ],
+                  ),
+                ),
+                data: (queue) {
+                  final filtered = queue.where((item) {
+                    final status =
+                        item['status']?.toString().toLowerCase() ?? '';
+                    final namaWarga =
+                        item['nama_lengkap']?.toString().toLowerCase() ?? '';
+                    final namaSurat =
+                        item['nama_surat']?.toString().toLowerCase() ?? '';
+                    final nomor =
+                        item['nomor_pengajuan']?.toString().toLowerCase() ?? '';
+
+                    final matchesFilter = _selectedFilter == 'semua' ||
+                        status == _selectedFilter ||
+                        (_selectedFilter == 'diajukan' &&
+                            (status == 'diajukan' || status == 'diproses')) ||
+                        (_selectedFilter == 'perlu revisi' &&
+                            status.contains('revisi'));
+
+                    final matchesSearch = _searchQuery.isEmpty ||
+                        namaWarga.contains(_searchQuery) ||
+                        namaSurat.contains(_searchQuery) ||
+                        nomor.contains(_searchQuery);
+
+                    return matchesFilter && matchesSearch;
+                  }).toList();
+
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF1F5F9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.checklist_rounded,
+                                size: 32,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'Tidak ada antrean surat',
+                              style: AppTypography.heading3.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Tidak ada permohonan yang sesuai dengan filter pencarian.'
+                                  : 'Seluruh permohonan warga telah ditinjau dan diselesaikan.',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async => ref.refresh(incomingQueueProvider),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppSpacing.md),
+                      itemBuilder: (context, index) {
+                        final item = filtered[index];
+                        final id = item['pengajuan_id'] as int? ?? 0;
+                        final nomorPengajuan =
+                            item['nomor_pengajuan']?.toString() ?? '-';
+                        final namaSurat =
+                            item['nama_surat']?.toString() ?? 'Surat Pengantar';
+                        final namaWarga =
+                            item['nama_lengkap']?.toString() ??
+                            item['nama_warga']?.toString() ??
+                            'Warga';
+                        final alamat = item['alamat']?.toString() ?? '-';
+                        final keperluan = item['keperluan']?.toString() ?? '-';
+                        final status =
+                            item['status']?.toString().toLowerCase() ?? 'diajukan';
+                        final metode =
+                            item['metode_tanda_tangan']?.toString() ?? 'digital';
+
+                        return _buildReviewFeedCard(
+                          context,
+                          id: id,
+                          nomorPengajuan: nomorPengajuan,
+                          namaSurat: namaSurat,
+                          namaWarga: namaWarga,
+                          alamat: alamat,
+                          keperluan: keperluan,
+                          status: status,
+                          metode: metode,
+                        );
+                      },
                     ),
                   );
                 },
               ),
-            );
-          },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value, {bool isAlert = false}) {
+    final isSelected = _selectedFilter == value;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: InkWell(
+        onTap: () => setState(() => _selectedFilter = value),
+        borderRadius: BorderRadius.circular(9999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isAlert ? AppColors.error : AppColors.primaryAccent)
+                : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(9999),
+            border: Border.all(
+              color: isSelected
+                  ? (isAlert ? AppColors.error : AppColors.primaryAccent)
+                  : const Color(0xFFE2E8F0),
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: isSelected ? Colors.white : const Color(0xFF475569),
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewFeedCard(
+    BuildContext context, {
+    required int id,
+    required String nomorPengajuan,
+    required String namaSurat,
+    required String namaWarga,
+    required String alamat,
+    required String keperluan,
+    required String status,
+    required String metode,
+  }) {
+    final initials = namaWarga.isNotEmpty
+        ? namaWarga
+            .trim()
+            .split(' ')
+            .map((e) => e.isNotEmpty ? e[0] : '')
+            .take(2)
+            .join()
+            .toUpperCase()
+        : 'W';
+
+    // Accent left border color based on status
+    Color accentColor = AppColors.primaryAccent;
+    if (status == 'perlu revisi' || status == 'perlu_revisi') {
+      accentColor = const Color(0xFFD97706);
+    } else if (status == 'selesai' || status == 'disetujui') {
+      accentColor = const Color(0xFF10B981);
+    } else if (status == 'ditolak') {
+      accentColor = AppColors.error;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Accent status line
+              Container(width: 5, color: accentColor),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Row
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            child: Text(
+                              initials,
+                              style: AppTypography.labelBold.copyWith(
+                                color: AppColors.primaryAccent,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  namaWarga,
+                                  style: AppTypography.labelBold.copyWith(
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  alamat,
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          RTStatusBadge(status: status),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      const Divider(height: 1, color: AppColors.border),
+                      const SizedBox(height: AppSpacing.sm),
+
+                      // Document Type & Purpose
+                      Text(
+                        namaSurat,
+                        style: AppTypography.heading3.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        keperluan,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Method and CTA
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  metode == 'digital'
+                                      ? Icons.qr_code_2_rounded
+                                      : Icons.edit_note_rounded,
+                                  size: 14,
+                                  color: const Color(0xFF475569),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  metode == 'digital'
+                                      ? 'TTD Digital'
+                                      : 'TTD Basah',
+                                  style: AppTypography.caption.copyWith(
+                                    color: const Color(0xFF475569),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          ElevatedButton.icon(
+                            onPressed: () => context.push('/letters/$id'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryAccent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 16,
+                            ),
+                            label: Text(
+                              'Periksa Detail',
+                              style: AppTypography.labelBold.copyWith(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

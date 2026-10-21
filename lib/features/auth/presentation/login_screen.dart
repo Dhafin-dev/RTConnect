@@ -96,7 +96,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Masukkan IP laptop backend (Wi-Fi / Hotspot yang sama):',
               style: AppTypography.bodySmall,
             ),
@@ -147,98 +147,152 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.mark_email_read_outlined,
-                  size: 64,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'RTConnect',
-                  style: AppTypography.heading1.copyWith(color: AppColors.primary),
-                ),
-                Text(
-                  AppConstants.appTagline,
-                  style: AppTypography.bodySmall,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                // Login Form Card
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text('Masuk ke Akun', style: AppTypography.heading3),
-                          const SizedBox(height: AppSpacing.md),
-                          RTTextField(
-                            label: 'Email / NIK',
-                            hint: 'Masukkan email atau NIK',
-                            controller: _identifierController,
-                            validator: (val) =>
-                                AuthValidators.validateRequired(val, 'Email / NIK'),
-                            prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          RTTextField(
-                            label: 'Password',
-                            hint: 'Masukkan password',
-                            controller: _passwordController,
-                            isPassword: true,
-                            validator: AuthValidators.validatePassword,
-                            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          RTPrimaryButton(
-                            text: 'Masuk Sekarang',
-                            isLoading: authState.isLoading,
-                            onPressed: _handleLogin,
-                          ),
-                        ],
-                      ),
+                // Brand Header Icon
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.account_balance_rounded,
+                      size: 32,
+                      color: AppColors.primaryBrand,
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
 
-                const SizedBox(height: AppSpacing.lg),
-                TextButton(
-                  onPressed: () => context.push(RouteNames.register),
-                  child: RichText(
-                    text: TextSpan(
-                      text: 'Belum punya akun warga? ',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                // Title: Masuk Akun
+                Text(
+                  'Masuk Akun',
+                  style: AppTypography.displayLarge.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navyDeep,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Kelola kebutuhan administrasi RT dalam satu akun',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 28),
+
+                // Container Form Box matching Figma #69:3881 (fill #EDF0FF, 16px radius)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightContainer, // Figma #EDF0FF
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFD6E0FF), width: 1),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0A000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TextSpan(
-                          text: 'Daftar di sini',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                        RTTextField(
+                          label: 'Email / NIK',
+                          hint: 'Masukkan email atau NIK',
+                          isRequired: true,
+                          controller: _identifierController,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (val) =>
+                              AuthValidators.validateRequired(val, 'Email / NIK'),
+                          prefixIcon: const Icon(
+                            Icons.mail_outline_rounded,
+                            size: 20,
+                            color: AppColors.textSubtle,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        RTTextField(
+                          label: 'Kata Sandi',
+                          hint: 'Masukkan kata sandi',
+                          isRequired: true,
+                          controller: _passwordController,
+                          isPassword: true,
+                          validator: AuthValidators.validatePassword,
+                          prefixIcon: const Icon(
+                            Icons.lock_outline_rounded,
+                            size: 20,
+                            color: AppColors.textSubtle,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+
+                const SizedBox(height: 24),
+
+                // Button: Masuk ke aplikasi RTConnect (Figma #69:4170)
+                RTPrimaryButton(
+                  text: 'Masuk ke aplikasi RTConnect',
+                  trailingIcon: Icons.arrow_forward_rounded,
+                  height: 52,
+                  borderRadius: 12,
+                  isLoading: authState.isLoading,
+                  onPressed: _handleLogin,
+                ),
+
+                const SizedBox(height: 20),
+
+                // Footer Link: Register
+                TextButton(
+                  onPressed: () => context.push(RouteNames.register),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Belum memiliki akun warga? ',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'Daftar di sini',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.primaryAction,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Quick Server Settings Dialog
                 TextButton.icon(
                   onPressed: _showServerConfigDialog,
-                  icon: const Icon(Icons.settings_ethernet, size: 16, color: AppColors.textSecondary),
+                  icon: const Icon(Icons.dns_outlined, size: 15, color: AppColors.textSubtle),
                   label: Text(
-                    'Server: ${AppConstants.customBaseUrl ?? AppConstants.defaultBaseUrl}',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    'Server API: ${AppConstants.customBaseUrl ?? AppConstants.defaultBaseUrl}',
+                    style: AppTypography.caption.copyWith(color: AppColors.textSubtle),
                   ),
                 ),
               ],

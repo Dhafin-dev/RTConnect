@@ -48,7 +48,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Surat RTConnect (PDF)', style: AppTypography.heading3),
+        title: Text('Surat RTConnect (PDF)', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,

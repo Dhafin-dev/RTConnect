@@ -57,7 +57,14 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onError: (DioException error, handler) {
+        onError: (DioException error, handler) async {
+          final requestPath = error.requestOptions.path.toLowerCase();
+          final isLoginRequest = requestPath.endsWith('/auth/login');
+          if (error.response?.statusCode == 401 &&
+              !isLoginRequest &&
+              _hasBearerToken(error.requestOptions)) {
+            await _clearStoredCredentials();
+          }
           final exception = _handleDioError(error);
           return handler.reject(
             DioException(
@@ -72,6 +79,27 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+
+  bool _hasBearerToken(RequestOptions options) {
+    for (final entry in options.headers.entries) {
+      if (entry.key.toLowerCase() == 'authorization' &&
+          entry.value is String &&
+          (entry.value as String).startsWith('Bearer ')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _clearStoredCredentials() async {
+    await Future.wait([
+      _storage.delete(key: AppConstants.keyAuthToken),
+      _storage.delete(key: AppConstants.keyUserRole),
+      _storage.delete(key: AppConstants.keyUserId),
+      _storage.delete(key: AppConstants.keyUserName),
+      _storage.delete(key: AppConstants.keyUserNik),
+    ]);
+  }
 
   AppException _handleDioError(DioException error) {
     switch (error.type) {

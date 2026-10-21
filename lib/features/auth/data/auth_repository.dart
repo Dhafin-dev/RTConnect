@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../domain/user_entity.dart';
@@ -86,6 +87,14 @@ class AuthRepository {
       final response = await _apiClient.dio.get<Map<String, dynamic>>(ApiEndpoints.me);
       final data = response.data!['data'] as Map<String, dynamic>;
       return UserEntity.fromJson(data);
+    } on DioException catch (error) {
+      // A stale token (for example, one signed by an old development key)
+      // cannot be refreshed. Clear only authentication data so the saved API
+      // server URL remains available for the next login.
+      if (error.error is AuthException || error.response?.statusCode == 401) {
+        await _clearCredentials();
+      }
+      return null;
     } catch (_) {
       return null;
     }
@@ -101,6 +110,16 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    await _storage.deleteAll();
+    await _clearCredentials();
+  }
+
+  Future<void> _clearCredentials() async {
+    await Future.wait([
+      _storage.delete(key: AppConstants.keyAuthToken),
+      _storage.delete(key: AppConstants.keyUserRole),
+      _storage.delete(key: AppConstants.keyUserId),
+      _storage.delete(key: AppConstants.keyUserName),
+      _storage.delete(key: AppConstants.keyUserNik),
+    ]);
   }
 }

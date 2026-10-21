@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'route_names.dart';
+import '../../features/auth/presentation/auth_controller.dart';
 
 // Screens Import
 import '../../features/auth/presentation/landing_screen.dart';
@@ -39,32 +41,34 @@ final GoRouter appRouter = GoRouter(
     // Warga Routes
     GoRoute(
       path: RouteNames.wargaHome,
-      builder: (context, state) => const WargaHomeScreen(),
+      builder: (context, state) => const _AuthGate(child: WargaHomeScreen()),
     ),
     GoRoute(
       path: RouteNames.wargaPengajuan,
-      builder: (context, state) => const LetterHistoryScreen(),
+      builder: (context, state) =>
+          const _AuthGate(child: LetterHistoryScreen()),
     ),
     GoRoute(
       path: RouteNames.wargaPengajuanBaru,
-      builder: (context, state) => const LetterApplicationScreen(),
+      builder: (context, state) =>
+          const _AuthGate(child: LetterApplicationScreen()),
     ),
     GoRoute(
       path: '/letters/:id',
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
-        return LetterDetailScreen(applicationId: id);
+        return _AuthGate(child: LetterDetailScreen(applicationId: id));
       },
     ),
 
     // RT Routes
     GoRoute(
       path: RouteNames.rtHome,
-      builder: (context, state) => const RTHomeScreen(),
+      builder: (context, state) => const _AuthGate(child: RTHomeScreen()),
     ),
     GoRoute(
       path: RouteNames.rtQueue,
-      builder: (context, state) => const RTReviewScreen(),
+      builder: (context, state) => const _AuthGate(child: RTReviewScreen()),
     ),
 
     // PDF Preview
@@ -72,18 +76,40 @@ final GoRouter appRouter = GoRouter(
       path: '/surat/preview/:id',
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
-        return PdfViewerScreen(applicationId: id);
+        return _AuthGate(child: PdfViewerScreen(applicationId: id));
       },
     ),
 
     // Chatbot & Notifications
     GoRoute(
       path: RouteNames.chatbot,
-      builder: (context, state) => const ChatbotScreen(),
+      builder: (context, state) => const _AuthGate(child: ChatbotScreen()),
     ),
     GoRoute(
       path: RouteNames.notifications,
-      builder: (context, state) => const NotificationFeedScreen(),
+      builder: (context, state) =>
+          const _AuthGate(child: NotificationFeedScreen()),
     ),
   ],
 );
+
+class _AuthGate extends ConsumerWidget {
+  final Widget child;
+
+  const _AuthGate({required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authControllerProvider);
+    if (authState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!authState.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go(RouteNames.login);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return child;
+  }
+}

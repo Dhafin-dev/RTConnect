@@ -21,7 +21,7 @@ class NotificationFeedScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Notifikasi', style: AppTypography.heading3),
+        title: Text('Notifikasi', style: AppTypography.heading3),
         centerTitle: true,
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -50,8 +50,8 @@ class NotificationFeedScreen extends ConsumerWidget {
                   children: [
                     Icon(Icons.notifications_none, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
                     const SizedBox(height: AppSpacing.sm),
-                    const Text('Tidak ada notifikasi', style: AppTypography.heading3),
-                    const Text('Pemberitahuan surat dan sistem akan muncul di sini.', style: AppTypography.caption),
+                    Text('Tidak ada notifikasi', style: AppTypography.heading3),
+                    Text('Pemberitahuan surat dan sistem akan muncul di sini.', style: AppTypography.caption),
                   ],
                 ),
               );

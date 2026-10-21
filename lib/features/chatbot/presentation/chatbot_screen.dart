@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/rt_bottom_nav_bar.dart';
 import 'chatbot_controller.dart';
 
+/// Screen 12: TanyaRT - Asisten AI Pintar Warga (Figma Node #68:1546)
 class ChatbotScreen extends ConsumerStatefulWidget {
   const ChatbotScreen({super.key});
 
@@ -18,6 +21,13 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
+  final List<String> _quickPrompts = [
+    'Syarat Surat SKCK',
+    'Iuran RT Bulan Ini',
+    'Surat Domisili Usaha',
+    'Jadwal Kerja Bakti',
+  ];
+
   @override
   void dispose() {
     _textController.dispose();
@@ -25,8 +35,8 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
-    final text = _textController.text;
+  void _sendMessage([String? customText]) {
+    final text = customText ?? _textController.text;
     if (text.trim().isEmpty) return;
     _textController.clear();
     ref.read(chatbotControllerProvider.notifier).sendMessage(text);
@@ -63,109 +73,371 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
     final chatState = ref.watch(chatbotControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(RouteNames.wargaHome);
+            }
+          },
+        ),
+        title: Row(
           children: [
-            Text('Tanya RT', style: AppTypography.heading3),
-            Text(
-              'Pencarian informasi ${AppConstants.rtArea}',
-              style: AppTypography.caption,
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.smart_toy_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TanyaRT',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Asisten Pintar • Aktif 24 Jam',
+                      style: AppTypography.caption.copyWith(
+                        color: const Color(0xFF10B981),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
-        backgroundColor: AppColors.surface,
-        elevation: 1,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1.0),
+          child: Divider(height: 1.0, color: AppColors.border),
+        ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Chat message list
+            // Quick Prompt Chips
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 8,
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _quickPrompts.map((prompt) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ActionChip(
+                        label: Text(prompt),
+                        labelStyle: AppTypography.caption.copyWith(
+                          color: AppColors.primaryAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                        onPressed: () => _sendMessage(prompt),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+
+            // Message List Feed
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: chatState.messages.length,
                 itemBuilder: (context, index) {
                   final msg = chatState.messages[index];
                   final isUser = msg.sender == 'warga';
 
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
                     child: Row(
-                      mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                      mainAxisAlignment:
+                          isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!isUser) ...[
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                            child: const Icon(Icons.smart_toy_outlined, size: 18, color: AppColors.primary),
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF2FF),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.smart_toy_rounded,
+                              size: 18,
+                              color: Color(0xFF6366F1),
+                            ),
                           ),
-                          const SizedBox(width: AppSpacing.xs),
+                          const SizedBox(width: 8),
                         ],
                         Flexible(
                           child: Column(
-                            crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            crossAxisAlignment: isUser
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isUser ? AppColors.primary : AppColors.cardBackground,
+                                  color: isUser
+                                      ? AppColors.primaryAccent
+                                      : Colors.white,
                                   borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(16),
-                                    topRight: const Radius.circular(16),
-                                    bottomLeft: Radius.circular(isUser ? 16 : 4),
-                                    bottomRight: Radius.circular(isUser ? 4 : 16),
+                                    topLeft: const Radius.circular(18),
+                                    topRight: const Radius.circular(18),
+                                    bottomLeft: Radius.circular(isUser ? 18 : 4),
+                                    bottomRight: Radius.circular(isUser ? 4 : 18),
                                   ),
-                                  border: isUser ? null : Border.all(color: AppColors.border),
+                                  border: isUser
+                                      ? null
+                                      : Border.all(color: AppColors.border),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x06000000),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 child: Text(
                                   msg.text,
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    color: isUser ? Colors.white : AppColors.textPrimary,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: isUser
+                                        ? Colors.white
+                                        : AppColors.textPrimary,
+                                    height: 1.4,
+                                    fontSize: 13.5,
                                   ),
                                 ),
                               ),
-                              // Citation Badge jika ada sumber resmi
+
+                              // Rujukan / Citation Pill
                               if (msg.citation != null) ...[
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.08),
+                                    color: const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: const Color(0xFFE2E8F0),
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.menu_book, size: 12, color: AppColors.primary),
-                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.library_books_rounded,
+                                        size: 13,
+                                        color: Color(0xFF475569),
+                                      ),
+                                      const SizedBox(width: 6),
                                       Text(
                                         'Rujukan: ${msg.citation}',
                                         style: AppTypography.caption.copyWith(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF475569),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 11,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
-                              // WhatsApp Escalation Card jika informasi tidak ditemukan
+
+                              // Feedback / Helpful buttons for Bot message
+                              if (!isUser) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Terima kasih atas tanggapan Anda!'),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: AppColors.border,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '👍 Membantu',
+                                          style: AppTypography.caption.copyWith(
+                                            fontSize: 11,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    InkWell(
+                                      onTap: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Tanggapan dicatat untuk peningkatan sistem.'),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: AppColors.border,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '👎 Belum Sesuai',
+                                          style: AppTypography.caption.copyWith(
+                                            fontSize: 11,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+
+                              // WhatsApp Escalation Card (Figma #68:1546)
                               if (msg.isEscalated && msg.whatsappUrl != null) ...[
-                                const SizedBox(height: AppSpacing.xs),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF25D366), // WhatsApp Green
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                const SizedBox(height: AppSpacing.sm),
+                                Container(
+                                  width: 280,
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDF4),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: const Color(0xFFBBF7D0),
+                                    ),
                                   ),
-                                  onPressed: () => _launchWhatsApp(msg.whatsappUrl!),
-                                  icon: const Icon(Icons.chat, color: Colors.white, size: 16),
-                                  label: const Text(
-                                    'Hubungi Pak RT via WhatsApp',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Perlu Konfirmasi Ketua RT?',
+                                        style: AppTypography.labelBold.copyWith(
+                                          color: const Color(0xFF166534),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Pertanyaan Anda memerlukan verifikasi manual langsung dari Pak RT.',
+                                        style: AppTypography.caption.copyWith(
+                                          color: const Color(0xFF15803D),
+                                        ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF25D366),
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 10,
+                                            ),
+                                          ),
+                                          onPressed: () =>
+                                              _launchWhatsApp(msg.whatsappUrl!),
+                                          icon: const Icon(
+                                            Icons.chat_rounded,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                          label: Text(
+                                            'Hubungi via WhatsApp',
+                                            style: AppTypography.labelBold.copyWith(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -179,47 +451,108 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
               ),
             ),
 
+            // Loading indicator
             if (chatState.isLoading) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: 6,
+                ),
                 child: Row(
                   children: [
-                    SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                    SizedBox(width: AppSpacing.xs),
-                    Text('Tanya RT sedang mencari jawaban di basis data...', style: AppTypography.caption),
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'TanyaRT sedang mencari rujukan resmi...',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
 
-            // Input Bar
+            // Input Text Bar (Figma #68:1546)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 10,
+              ),
               decoration: const BoxDecoration(
-                color: AppColors.surface,
+                color: Colors.white,
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: const InputDecoration(
-                        hintText: 'Tanyakan syarat surat, iuran, tata tertib...',
-                        border: InputBorder.none,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: _textController,
+                        style: AppTypography.bodySmall,
+                        decoration: const InputDecoration(
+                          hintText: 'Tanyakan syarat surat, iuran, tata tertib...',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 13,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: AppColors.primary),
-                    onPressed: _sendMessage,
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _sendMessage(),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryAccent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x332563EB),
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: RTBottomNavBar(
+        currentIndex: 2,
+        onTap: (index) {
+          if (index == 2) return;
+          if (index == 0) {
+            context.go(RouteNames.wargaHome);
+          } else if (index == 1) {
+            context.push(RouteNames.wargaPengajuan);
+          }
+        },
       ),
     );
   }

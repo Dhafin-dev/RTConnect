@@ -19,6 +19,7 @@ dependencies:
 
   # Networking & REST API
   dio: ^5.4.1
+  http: ^1.2.0
 
   # Local Storage & Encryption
   flutter_secure_storage: ^10.0.0

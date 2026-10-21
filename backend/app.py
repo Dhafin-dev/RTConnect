@@ -21,7 +21,8 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS}})
+    cors_origins = ["*"] if not Config.IS_PRODUCTION else Config.CORS_ORIGINS
+    CORS(app, resources={r"/api/*": {"origins": cors_origins}})
 
     if Config.STORAGE_BACKEND == 'local':
         for folder in [Config.UPLOAD_FOLDER, Config.SIGNATURES_FOLDER, Config.ATTACHMENTS_FOLDER, Config.LETTERS_FOLDER]:

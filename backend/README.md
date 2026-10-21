@@ -10,6 +10,8 @@ Flask REST API for RTConnect. Letter drafts are built from a deterministic templ
 - Private local storage for development or private S3-compatible object storage for production
 - ReportLab PDF generation; displayed signature images are not cryptographic PDF signatures
 
+JWT signing uses one stable secret shared by every API worker and replica. Local development has a fixed development-only fallback so Gunicorn workers can verify each other's tokens. Production has no fallback: configure the same randomly generated `JWT_SECRET` for every process, keep it stable across restarts, and rotate it only when you intend to sign out all users.
+
 ## Important files
 
 - `app.py`: Flask application and health endpoint

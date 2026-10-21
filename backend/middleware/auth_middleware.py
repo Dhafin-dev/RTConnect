@@ -56,7 +56,7 @@ def jwt_required(f):
         except jwt.InvalidTokenError:
             return jsonify({
                 'success': False,
-                'message': 'Format token tidak valid',
+                'message': 'Sesi login tidak valid, silakan login kembali',
                 'data': None,
                 'error': 'INVALID_TOKEN'
             }), 401

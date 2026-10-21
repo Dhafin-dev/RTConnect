@@ -1,6 +1,5 @@
 import os
 import re
-import secrets
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
@@ -26,8 +25,10 @@ class Config:
     MYSQL_SSL_MODE = os.getenv('MYSQL_SSL_MODE', 'preferred').lower()
 
     # Keamanan JWT
-    # Development tokens use a fresh process-local key. Production fails closed.
-    JWT_SECRET = os.getenv('JWT_SECRET') or (None if IS_PRODUCTION else secrets.token_urlsafe(48))
+    # All local workers must share the same key. Production still requires an
+    # explicitly configured, randomly generated secret through validate().
+    _LOCAL_JWT_SECRET = 'rtconnect-local-development-secret-do-not-use-in-production'
+    JWT_SECRET = os.getenv('JWT_SECRET') or (None if IS_PRODUCTION else _LOCAL_JWT_SECRET)
     JWT_EXPIRATION_DAYS = int(os.getenv('JWT_EXPIRATION_DAYS', '1'))
     RT_SIGNING_PIN_HASH = os.getenv('RT_SIGNING_PIN_HASH')
 
@@ -69,8 +70,9 @@ class Config:
     @classmethod
     def validate(cls):
         if cls.IS_PRODUCTION:
-            if not cls.JWT_SECRET or len(cls.JWT_SECRET) < 32:
-                raise RuntimeError('Production requires JWT_SECRET with at least 32 characters.')
+            if (not cls.JWT_SECRET or len(cls.JWT_SECRET) < 32
+                    or cls.JWT_SECRET == cls._LOCAL_JWT_SECRET):
+                raise RuntimeError('Production requires a unique JWT_SECRET with at least 32 characters.')
             if not cls.RT_SIGNING_PIN_HASH:
                 raise RuntimeError('Production requires RT_SIGNING_PIN_HASH.')
             if cls.STORAGE_BACKEND == 'local':

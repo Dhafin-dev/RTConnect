@@ -15,7 +15,7 @@ Set these values in the hosting platform's secret/environment settings. Do not c
 | Variable | Purpose |
 |---|---|
 | `APP_ENV=production` | Enables production validation and disables the Flask debugger |
-| `JWT_SECRET` | Random secret of at least 32 characters; rotate it to invalidate all sessions |
+| `JWT_SECRET` | Random secret of at least 32 characters; keep the same value across every worker/replica and across restarts; rotation invalidates all sessions |
 | `RT_SIGNING_PIN_HASH` | Bcrypt hash produced with `python -m database.hash_rt_pin` |
 | `MYSQL_SSL_CA` | Path inside the container to the managed database CA PEM file |
 | `MYSQL_SSL_MODE=required` | Require TLS; the configured CA is used to verify the database certificate and hostname |

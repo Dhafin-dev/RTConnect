@@ -27,6 +27,21 @@ backend/uploads/generated_letters/*.pdf
 backend/uploads/attachments/*
 !backend/uploads/signatures/*.png
 
+# Academic Documents, SRS, & Project Monitoring (Non-Runtime)
+UTS/
+monitoring/
+diagrams/
+uml/
+scripts/
+*.zip
+*.docx
+
+# Raw UI Mockups & Diagram Assets (Not Used by App Runtime)
+assets/ui_designs/
+assets/diagrams/
+
+# Temporary Dev Reports & Changelogs
+BACKEND_CHANGE_REPORT.md
 
 # IDE & Editor
 .idea/

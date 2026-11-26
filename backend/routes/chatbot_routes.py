@@ -272,12 +272,12 @@ def _chunk_text(text: str) -> list[str]:
 def get_knowledge_documents():
     """Mengambil daftar dokumen basis pengetahuan (Khusus Ketua RT)."""
     docs = query_all("""
-        SELECT k.knowledge_id, k.judul, k.kategori, k.sumber, k.uploaded_by,
+        SELECT k.knowledge_id, k.judul, k.kategori, k.isi_dokumen, k.sumber, k.uploaded_by,
                k.tanggal_upload, k.updated_at,
                COUNT(c.chunk_id) AS total_chunks
         FROM knowledgebase k
         LEFT JOIN knowledgechunk c ON k.knowledge_id = c.knowledge_id
-        GROUP BY k.knowledge_id, k.judul, k.kategori, k.sumber, k.uploaded_by,
+        GROUP BY k.knowledge_id, k.judul, k.kategori, k.isi_dokumen, k.sumber, k.uploaded_by,
                  k.tanggal_upload, k.updated_at
         ORDER BY k.knowledge_id DESC
     """)

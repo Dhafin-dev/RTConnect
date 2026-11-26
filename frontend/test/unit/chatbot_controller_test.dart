@@ -32,6 +32,31 @@ class MockChatbotRepository implements ChatbotRepository {
 
   @override
   Future<List<Map<String, dynamic>>> getSessionMessages(int sessionId) async => [];
+
+  @override
+  Future<List<Map<String, dynamic>>> getKnowledgeDocuments() async => [];
+
+  @override
+  Future<Map<String, dynamic>> createKnowledgeDocument({
+    required String judul,
+    required String kategori,
+    required String isiDokumen,
+    String sumber = 'SOP Resmi RT',
+  }) async =>
+      {};
+
+  @override
+  Future<Map<String, dynamic>> updateKnowledgeDocument({
+    required int knowledgeId,
+    required String judul,
+    required String kategori,
+    required String isiDokumen,
+    String sumber = 'SOP Resmi RT',
+  }) async =>
+      {};
+
+  @override
+  Future<void> deleteKnowledgeDocument(int knowledgeId) async {}
 }
 
 void main() {

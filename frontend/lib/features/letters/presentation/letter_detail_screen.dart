@@ -501,29 +501,6 @@ class _LetterDetailScreenState extends ConsumerState<LetterDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle_outline, size: 13, color: Color(0xFF2563EB)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Iuran RT: Lunas',
-                      style: AppTypography.caption.copyWith(
-                        color: const Color(0xFF1E40AF),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),

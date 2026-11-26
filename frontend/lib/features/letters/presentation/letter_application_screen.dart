@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -142,9 +143,21 @@ class _LetterApplicationScreenState
       withData: kIsWeb, // di web path file tidak tersedia, jadi isi file diambil langsung
     );
     if (result != null && result.files.isNotEmpty) {
+      final file = result.files.single;
+      if (file.size > 8 * 1024 * 1024) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: AppColors.error,
+              content: Text('Ukuran berkas lampiran maksimal 8 MB'),
+            ),
+          );
+        }
+        return;
+      }
       setState(() {
-        _lampiran = result.files.single;
-        _lampiranFileName = result.files.single.name;
+        _lampiran = file;
+        _lampiranFileName = file.name;
       });
     }
   }
@@ -222,6 +235,7 @@ class _LetterApplicationScreenState
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Kembali',
           icon: const Icon(
             Icons.arrow_back_ios_new,
             color: AppColors.textPrimary,
@@ -318,7 +332,7 @@ class _LetterApplicationScreenState
                     ),
                   ),
                   error: (err, _) => Text(
-                    'Gagal memuat jenis surat: $err',
+                    'Gagal memuat jenis surat: ${formatErrorMessage(err)}',
                     style: const TextStyle(color: AppColors.error),
                   ),
                   data: (types) {
@@ -823,6 +837,7 @@ class _LetterApplicationScreenState
               ),
             ),
             IconButton(
+              tooltip: 'Hapus lampiran',
               icon: const Icon(Icons.close_rounded, color: AppColors.error),
               onPressed: _removeAttachment,
             ),
@@ -873,7 +888,7 @@ class _LetterApplicationScreenState
             ),
             const SizedBox(height: 2),
             Text(
-              'Format PDF, PNG, atau JPG (Maks. 5 MB)',
+              'Format PDF, PNG, atau JPG (Maks. 8 MB)',
               style: AppTypography.caption.copyWith(
                 color: AppColors.textSecondary,
               ),

@@ -11,6 +11,8 @@ from app import create_app
 def run_api_tests():
     from config import Config
     from routes.letter_routes import reset_pin_attempts
+    from services.login_guard_service import reset_login_attempts
+    reset_login_attempts()
     if not Config.RT_SIGNING_PIN_HASH and not Config.IS_PRODUCTION:
         import bcrypt
         Config.RT_SIGNING_PIN_HASH = bcrypt.hashpw(b'123456', bcrypt.gensalt()).decode('utf-8')
@@ -44,15 +46,52 @@ def run_api_tests():
     assert res_reg.status_code == 201, f"Register gagal: {res_reg.data}"
     print(f"[PASS] 2. Registrasi Warga Baru (API-001): OK -> User ID: {res_reg.get_json()['data']['user_id']}")
 
-    # 3. Login Warga (API-002)
+    # 3. Login Warga & Uji Brute-Force Lockout (API-002 / Issue #19)
+    for attempt in range(1, 5):
+        res_bad_login = client.post('/api/v1/auth/login', json={
+            'identity': 'resident@example.test',
+            'password': f'SalahPassword#{attempt}'
+        })
+        assert res_bad_login.status_code == 401, f"Percobaan {attempt} gagal mengembalikan 401: {res_bad_login.data}"
+        assert res_bad_login.get_json()['data']['sisa_percobaan'] == 5 - attempt
+
+    res_login_lock = client.post('/api/v1/auth/login', json={
+        'identity': 'resident@example.test',
+        'password': 'SalahPassword#5'
+    })
+    assert res_login_lock.status_code == 429, f"Percobaan ke-5 tidak memicu 429: {res_login_lock.data}"
+    assert res_login_lock.get_json()['error'] == 'TOO_MANY_REQUESTS'
+
+    res_locked_valid = client.post('/api/v1/auth/login', json={
+        'identity': 'resident@example.test',
+        'password': 'LocalTestOnly#2026'
+    })
+    assert res_locked_valid.status_code == 429, f"Login valid saat terkunci harus ditolak 429: {res_locked_valid.data}"
+    reset_login_attempts('resident@example.test')
+
+    # Uji reset otomatis counter setelah login valid
+    assert client.post('/api/v1/auth/login', json={
+        'identity': 'resident@example.test',
+        'password': 'SalahPassword#Reset'
+    }).status_code == 401
     res_warga = client.post('/api/v1/auth/login', json={
         'identity': 'resident@example.test',
         'password': 'LocalTestOnly#2026'
     })
     assert res_warga.status_code == 200, f"Login Warga gagal: {res_warga.data}"
+    assert res_warga.headers.get('X-Content-Type-Options') == 'nosniff'
+    assert res_warga.headers.get('X-Frame-Options') == 'DENY'
+    assert res_warga.headers.get('Cache-Control') == 'no-store'
     warga_token = res_warga.get_json()['data']['token']
     warga_headers = {'Authorization': f'Bearer {warga_token}'}
-    print("[PASS] 3. Login Warga (API-002): OK -> Token berhasil diperoleh untuk role 'warga'")
+    print("[PASS] 3. Login Warga & Brute-Force Lockout (API-002 / Issue #19): OK -> 5x gagal -> 429, login sukses mereset counter")
+
+    # 3b. Hardening Auth: tolak ?token=, JSON signature_key, dan input invalid /auth/me
+    assert client.get(f'/api/v1/auth/me?token={warga_token}').status_code == 401
+    assert client.post('/api/v1/auth/signature', headers=warga_headers, json={'signature_key': 'generated_letters/x.pdf'}).status_code == 400
+    assert client.put('/api/v1/auth/me', headers=warga_headers, json={'nama_lengkap': None}).status_code == 400
+    assert client.put('/api/v1/auth/me', headers=warga_headers, json={'email': 'rt@example.test'}).status_code == 409
+    print("[PASS] 3b. Auth Hardening (SEC-01/02/03/04): OK -> ?token=, signature JSON, null profile, & email duplikat ditolak")
 
     # 4. Login Ketua RT (API-002)
     res_rt = client.post('/api/v1/auth/login', json={

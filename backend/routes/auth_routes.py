@@ -6,9 +6,31 @@ from config import Config
 from database.db import UniqueViolation, execute_returning, query_one
 from middleware.auth_middleware import generate_token, jwt_required
 from services.file_storage import read_bytes, store_upload
-from services.user_service import find_by_identity, nik_or_email_taken, update_user_profile, update_user_signature, update_user_avatar, update_user_fcm_token
+from services.login_guard_service import (
+    check_login_allowed,
+    check_register_rate_limit,
+    record_login_failure,
+    reset_login_attempts,
+)
+from services.user_service import (
+    find_by_identity,
+    nik_or_email_taken,
+    update_user_avatar,
+    update_user_fcm_token,
+    update_user_profile,
+    update_user_signature,
+)
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
+
+_EMAIL_RE = re.compile(r"[^\s@]+@[^\s@]+\.[^\s@]+")
+
+
+def _client_ip() -> str:
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or 'unknown'
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -22,6 +44,15 @@ def check_password(password: str, hashed: str) -> bool:
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """API-001: Pendaftaran akun warga baru"""
+    rate_check = check_register_rate_limit(_client_ip())
+    if not rate_check.ok:
+        return jsonify({
+            'success': False,
+            'message': rate_check.message,
+            'data': rate_check.data(),
+            'error': rate_check.error
+        }), rate_check.http_status
+
     if request.is_json:
         parsed_data = request.get_json(silent=True)
         data = parsed_data if isinstance(parsed_data, dict) else {}
@@ -143,15 +174,26 @@ def login():
             'error': 'MISSING_CREDENTIALS'
         }), 400
 
+    client_ip = _client_ip()
+    guard = check_login_allowed(identity, client_ip)
+    if not guard.ok:
+        return jsonify({
+            'success': False,
+            'message': guard.message,
+            'data': guard.data(),
+            'error': guard.error
+        }), guard.http_status
+
     user = find_by_identity(identity)
 
     if not user or not check_password(password, user['password_hash']):
+        fail = record_login_failure(identity, client_ip)
         return jsonify({
             'success': False,
-            'message': 'Email/NIK atau password salah',
-            'data': None,
-            'error': 'UNAUTHORIZED'
-        }), 401
+            'message': fail.message,
+            'data': fail.data(),
+            'error': fail.error
+        }), fail.http_status
 
     if not user['is_active']:
         return jsonify({
@@ -161,6 +203,7 @@ def login():
             'error': 'ACCOUNT_INACTIVE'
         }), 403
 
+    reset_login_attempts(identity, client_ip)
     token = generate_token(user['user_id'], user['role'], user['email'])
 
     return jsonify({
@@ -214,13 +257,68 @@ def update_profile():
     """API-004: Memperbarui data profil pengguna"""
     user = request.current_user
     parsed_data = request.get_json(silent=True)
-    data = parsed_data if isinstance(parsed_data, dict) else {}
-    nama = data.get('nama_lengkap', user['nama_lengkap']).strip()
-    no_telp = data.get('nomor_telepon', user['nomor_telepon']).strip()
-    alamat = data.get('alamat', user.get('alamat', '')).strip()
-    email = data.get('email', user['email']).strip()
+    if parsed_data is None or not isinstance(parsed_data, dict):
+        return jsonify({
+            'success': False,
+            'message': 'Format data profil harus berupa objek JSON yang valid',
+            'data': None,
+            'error': 'VALIDATION_ERROR'
+        }), 400
 
-    updated = update_user_profile(user['role'], user['user_id'], nama, no_telp, alamat, email)
+    def _field_str(key: str, default: str):
+        if key not in parsed_data:
+            return default, True
+        val = parsed_data.get(key)
+        if not isinstance(val, str):
+            return None, False
+        return val.strip(), True
+
+    nama, ok_nama = _field_str('nama_lengkap', user['nama_lengkap'] or '')
+    no_telp, ok_telp = _field_str('nomor_telepon', user['nomor_telepon'] or '')
+    alamat, ok_alamat = _field_str('alamat', user.get('alamat') or '')
+    email, ok_email = _field_str('email', user['email'] or '')
+
+    if not (ok_nama and ok_telp and ok_alamat and ok_email):
+        return jsonify({
+            'success': False,
+            'message': 'Nilai kolom profil harus berupa teks',
+            'data': None,
+            'error': 'VALIDATION_ERROR'
+        }), 400
+
+    email = email.lower()
+    if (not nama or len(nama) > 100
+            or not email or len(email) > 100 or not _EMAIL_RE.fullmatch(email)
+            or not no_telp or len(no_telp) > 20
+            or (user['role'] == 'warga' and (not alamat or len(alamat) > 255))):
+        return jsonify({
+            'success': False,
+            'message': 'Nama (maks. 100), email valid (maks. 100), telepon (maks. 20), dan alamat (maks. 255) wajib diisi dengan benar',
+            'data': None,
+            'error': 'INVALID_PROFILE'
+        }), 400
+
+    if email != (user['email'] or '').lower():
+        for table in ('warga', 'rt'):
+            existing = query_one(f"SELECT email FROM {table} WHERE lower(email) = lower(%s)", (email,))
+            if existing:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email tersebut sudah terdaftar dalam sistem RTConnect',
+                    'data': None,
+                    'error': 'DUPLICATE_ENTRY'
+                }), 409
+
+    try:
+        updated = update_user_profile(user['role'], user['user_id'], nama, no_telp, alamat, email)
+    except UniqueViolation:
+        return jsonify({
+            'success': False,
+            'message': 'Email tersebut sudah terdaftar dalam sistem RTConnect',
+            'data': None,
+            'error': 'DUPLICATE_ENTRY'
+        }), 409
+
     if not updated:
         return jsonify({
             'success': False,
@@ -251,32 +349,29 @@ def update_profile():
 @auth_bp.route('/signature', methods=['POST'])
 @jwt_required
 def update_signature():
-    """API-005: Memperbarui tanda tangan digital pengguna"""
+    """API-005: Memperbarui tanda tangan digital pengguna melalui unggahan berkas gambar."""
     user = request.current_user
     sig_file = request.files.get('tanda_tangan')
 
     if not sig_file or not sig_file.filename:
-        data = request.get_json(silent=True) or {}
-        sig_key = data.get('tanda_tangan_url') or data.get('signature_key')
-        if not sig_key:
-            return jsonify({
-                'success': False,
-                'message': 'File atau data tanda tangan wajib disertakan',
-                'data': None,
-                'error': 'MISSING_SIGNATURE'
-            }), 400
-    else:
-        try:
-            sig_key = store_upload(sig_file, 'signatures')
-        except ValueError as err:
-            return jsonify({
-                'success': False,
-                'message': str(err),
-                'data': None,
-                'error': 'INVALID_FILE'
-            }), 400
+        return jsonify({
+            'success': False,
+            'message': 'File gambar tanda tangan wajib diunggah',
+            'data': None,
+            'error': 'MISSING_SIGNATURE'
+        }), 400
 
-    updated = update_user_signature(user['role'], user['user_id'], sig_key)
+    try:
+        sig_key = store_upload(sig_file, 'signatures')
+    except ValueError as err:
+        return jsonify({
+            'success': False,
+            'message': str(err),
+            'data': None,
+            'error': 'INVALID_FILE'
+        }), 400
+
+    update_user_signature(user['role'], user['user_id'], sig_key)
     return jsonify({
         'success': True,
         'message': 'Tanda tangan digital berhasil diperbarui',
@@ -292,7 +387,7 @@ def get_signature():
     """API-006: Mengambil file gambar tanda tangan digital pengguna saat ini"""
     user = request.current_user
     sig_key = user.get('tanda_tangan_url')
-    if not sig_key:
+    if not sig_key or not isinstance(sig_key, str) or not sig_key.startswith('signatures/'):
         return jsonify({
             'success': False,
             'message': 'Tanda tangan belum diunggah',

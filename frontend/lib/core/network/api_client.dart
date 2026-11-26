@@ -16,8 +16,8 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: effectiveBaseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 25),
+        receiveTimeout: const Duration(seconds: 30),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -113,6 +113,7 @@ class ApiClient {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
       case DioExceptionType.connectionError:
         return const NetworkException();
       case DioExceptionType.badResponse:
@@ -124,12 +125,17 @@ class ApiClient {
 
         if (statusCode == 401) {
           return AuthException(message);
-        } else if (statusCode == 400) {
+        } else if (statusCode == 400 || statusCode == 409 || statusCode == 429) {
           return ValidationException(message);
         }
         return ServerException(message);
       default:
-        return AppException(error.message ?? 'Kesalahan tidak terduga');
+        final inner = error.error;
+        if (inner is AppException) return inner;
+        if (inner is FormatException && inner.message.isNotEmpty) {
+          return ValidationException(inner.message);
+        }
+        return const NetworkException();
     }
   }
 }

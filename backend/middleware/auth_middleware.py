@@ -25,10 +25,11 @@ def jwt_required(f):
             request._t_req_start = time.perf_counter()
         auth_header = request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-        elif request.args.get('token'):
-            token = request.args.get('token')
+            token = auth_header.split(' ', 1)[1].strip()
         else:
+            token = None
+
+        if not token:
             return jsonify({
                 'success': False,
                 'message': 'Token autentikasi tidak ditemukan atau tidak valid',

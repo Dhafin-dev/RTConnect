@@ -58,12 +58,8 @@ class ProfileRepository {
           filename: fileName ?? 'signature.png',
         ),
       });
-    } else if (signatureKey != null && signatureKey.isNotEmpty) {
-      payload = {
-        'signature_key': signatureKey,
-      };
     } else {
-      throw ArgumentError('Tanda tangan tidak valid');
+      throw ArgumentError('File tanda tangan wajib dipilih');
     }
 
     final response = await _apiClient.dio.post<Map<String, dynamic>>(

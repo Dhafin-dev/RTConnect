@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -46,6 +47,7 @@ class _LetterHistoryScreenState extends ConsumerState<LetterHistoryScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Kembali',
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 20),
           onPressed: () => context.go(RouteNames.wargaHome),
         ),
@@ -119,7 +121,11 @@ class _LetterHistoryScreenState extends ConsumerState<LetterHistoryScreen> {
                     children: [
                       const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                       const SizedBox(height: AppSpacing.sm),
-                      Text('Gagal memuat data surat: $err', style: AppTypography.bodySmall),
+                      Text(
+                        'Gagal memuat data surat: ${formatErrorMessage(err)}',
+                        style: AppTypography.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
                       TextButton(
                         onPressed: () => ref.refresh(myApplicationsProvider),
                         child: const Text('Coba Lagi'),

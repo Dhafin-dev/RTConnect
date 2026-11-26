@@ -86,53 +86,62 @@ class _RTTextFieldState extends State<RTTextField> {
           ],
         ),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: widget.controller,
-          validator: widget.validator,
-          obscureText: _obscureText,
-          keyboardType: widget.keyboardType,
-          maxLines: widget.isPassword ? 1 : widget.maxLines,
-          readOnly: widget.isReadOnly,
-          onChanged: widget.onChanged,
-          style: AppTypography.bodyLarge.copyWith(
-            color: AppColors.textSlate,
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            filled: true,
-            fillColor: Colors.white,
-            prefixIcon: widget.prefixIcon,
-            suffixIcon: widget.isPassword
-                ? IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: AppColors.textSubtle,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureText = !_obscureText;
-                      });
-                    },
-                  )
-                : widget.suffixIcon,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.borderSubtle, width: 1.0),
+        Semantics(
+          label: widget.label,
+          textField: true,
+          child: TextFormField(
+            controller: widget.controller,
+            validator: widget.validator,
+            obscureText: _obscureText,
+            keyboardType: widget.keyboardType,
+            maxLines: widget.isPassword ? 1 : widget.maxLines,
+            readOnly: widget.isReadOnly,
+            onChanged: widget.onChanged,
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSlate,
+              fontWeight: FontWeight.w500,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.borderSubtle, width: 1.0),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.primaryAction, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.error, width: 1.0),
+            decoration: InputDecoration(
+              labelText: widget.label,
+              floatingLabelBehavior: FloatingLabelBehavior.never,
+              hintText: widget.hint,
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: widget.prefixIcon,
+              suffixIcon: widget.isPassword
+                  ? IconButton(
+                      tooltip: _obscureText
+                          ? 'Tampilkan kata sandi'
+                          : 'Sembunyikan kata sandi',
+                      icon: Icon(
+                        _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: AppColors.textSubtle,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
+                    )
+                  : widget.suffixIcon,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: AppColors.borderSubtle, width: 1.0),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: AppColors.borderSubtle, width: 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: AppColors.primaryAction, width: 1.5),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: AppColors.error, width: 1.0),
+              ),
             ),
           ),
         ),

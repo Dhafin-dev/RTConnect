@@ -19,6 +19,7 @@ import '../../features/letters/presentation/letter_detail_screen.dart';
 import '../../features/letters/presentation/rt_review_screen.dart';
 import '../../features/letters/presentation/pdf_viewer_screen.dart';
 import '../../features/chatbot/presentation/chatbot_screen.dart';
+import '../../features/chatbot/presentation/rt_knowledge_screen.dart';
 import '../../features/notifications/presentation/notification_feed_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
@@ -77,10 +78,14 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const RTReviewScreen(),
         ),
 
-        // Chatbot Tab
+        // Chatbot & RT Knowledge Tab
         GoRoute(
           path: RouteNames.chatbot,
           builder: (context, state) => const ChatbotScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.rtKnowledge,
+          builder: (context, state) => const RTKnowledgeScreen(),
         ),
       ],
     ),
@@ -167,7 +172,8 @@ class _MainNavigationShell extends ConsumerWidget {
     if (currentLocation == RouteNames.wargaPengajuan ||
         currentLocation == RouteNames.rtQueue) {
       currentIndex = 0;
-    } else if (currentLocation == RouteNames.chatbot) {
+    } else if (currentLocation == RouteNames.chatbot ||
+        currentLocation == RouteNames.rtKnowledge) {
       currentIndex = 2;
     } else {
       currentIndex = 1;
@@ -183,7 +189,7 @@ class _MainNavigationShell extends ConsumerWidget {
           } else if (index == 1) {
             context.go(isRT ? RouteNames.rtHome : RouteNames.wargaHome);
           } else if (index == 2) {
-            context.go(RouteNames.chatbot);
+            context.go(isRT ? RouteNames.rtKnowledge : RouteNames.chatbot);
           }
         },
       ),

@@ -1,5 +1,4 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exception.dart';
 import '../data/letter_repository.dart';
@@ -85,11 +84,10 @@ class LetterSubmitController extends StateNotifier<LetterSubmitState> {
       _ref.invalidate(myApplicationsProvider);
       return true;
     } catch (e) {
-      // Tampilkan pesan validasi dari server (mis. "Nomor KK harus 16 digit")
-      final message = (e is DioException && e.error is AppException)
-          ? (e.error as AppException).message
-          : e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, errorMessage: message);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: formatErrorMessage(e, 'Gagal mengirim pengajuan surat.'),
+      );
       return false;
     }
   }
@@ -103,7 +101,10 @@ class LetterSubmitController extends StateNotifier<LetterSubmitState> {
       _ref.invalidate(applicationDetailProvider(id));
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: formatErrorMessage(e, 'Gagal memproses keputusan RT.'),
+      );
       return false;
     }
   }
@@ -117,11 +118,10 @@ class LetterSubmitController extends StateNotifier<LetterSubmitState> {
       _ref.invalidate(applicationDetailProvider(id));
       return true;
     } catch (e) {
-      // Ambil pesan server (PIN salah + sisa percobaan / PIN terkunci)
-      final message = (e is DioException && e.error is AppException)
-          ? (e.error as AppException).message
-          : e.toString();
-      state = state.copyWith(isLoading: false, errorMessage: message);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: formatErrorMessage(e, 'Gagal mengesahkan dokumen.'),
+      );
       return false;
     }
   }
@@ -135,7 +135,10 @@ class LetterSubmitController extends StateNotifier<LetterSubmitState> {
       _ref.invalidate(applicationDetailProvider(id));
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: formatErrorMessage(e, 'Gagal mengonfirmasi surat fisik.'),
+      );
       return false;
     }
   }

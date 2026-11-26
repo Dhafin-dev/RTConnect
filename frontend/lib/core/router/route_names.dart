@@ -16,6 +16,7 @@ class RouteNames {
   static const String rtHome = '/rt/home';
   static const String rtQueue = '/rt/pengajuan';
   static const String rtDetail = '/rt/pengajuan/:id';
+  static const String rtKnowledge = '/rt/knowledge';
 
   // Shared Profile & Signature Routes
   static const String profile = '/profile';

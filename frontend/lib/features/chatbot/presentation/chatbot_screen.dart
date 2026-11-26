@@ -107,6 +107,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Kembali',
           icon: const Icon(
             Icons.arrow_back_ios_new,
             color: AppColors.textPrimary,
@@ -339,84 +340,6 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                                 ),
                               ],
 
-                              // Feedback / Helpful buttons for Bot message
-                              if (!isUser) ...[
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    InkWell(
-                                      onTap: () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Terima kasih atas tanggapan Anda!'),
-                                            duration: Duration(seconds: 1),
-                                          ),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                          border: Border.all(
-                                            color: AppColors.border,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '👍 Membantu',
-                                          style: AppTypography.caption.copyWith(
-                                            fontSize: 11,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    InkWell(
-                                      onTap: () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Tanggapan dicatat untuk peningkatan sistem.'),
-                                            duration: Duration(seconds: 1),
-                                          ),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                          border: Border.all(
-                                            color: AppColors.border,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '👎 Belum Sesuai',
-                                          style: AppTypography.caption.copyWith(
-                                            fontSize: 11,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-
                               // WhatsApp Escalation Card (Figma #68:1546)
                               if (msg.isEscalated &&
                                   msg.whatsappUrl != null) ...[
@@ -563,8 +486,11 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _sendMessage(),
+                  Semantics(
+                    button: true,
+                    label: 'Kirim pesan',
+                    child: GestureDetector(
+                      onTap: () => _sendMessage(),
                     child: Container(
                       width: 44,
                       height: 44,
@@ -585,6 +511,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                         size: 20,
                       ),
                     ),
+                  ),
                   ),
                 ],
               ),

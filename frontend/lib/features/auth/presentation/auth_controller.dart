@@ -1,4 +1,6 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/errors/app_exception.dart';
 import '../data/auth_repository.dart';
 import '../domain/user_entity.dart';
 
@@ -81,7 +83,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: formatErrorMessage(e, 'Login gagal. Silakan coba lagi.'),
       );
       return false;
     }
@@ -95,6 +97,7 @@ class AuthController extends StateNotifier<AuthState> {
     required String nomorTelepon,
     required String alamat,
     String? signaturePath,
+    PlatformFile? signatureFile,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -106,13 +109,14 @@ class AuthController extends StateNotifier<AuthState> {
         nomorTelepon: nomorTelepon,
         alamat: alamat,
         signaturePath: signaturePath,
+        signatureFile: signatureFile,
       );
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: formatErrorMessage(e, 'Registrasi gagal. Silakan coba lagi.'),
       );
       return false;
     }

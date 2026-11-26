@@ -231,14 +231,17 @@ class RTDrawerMenu extends ConsumerWidget {
                   _buildDrawerMenuTile(
                     icon: Icons.settings_outlined,
                     title: 'Pengaturan Akun',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(RouteNames.editProfile);
+                    },
                   ),
                   _buildDrawerMenuTile(
                     icon: Icons.help_outline_rounded,
-                    title: 'Pusat Bantuan & TanyaRT',
+                    title: isRT ? 'Kelola Basis Pengetahuan TanyaRT' : 'Pusat Bantuan & TanyaRT',
                     onTap: () {
                       Navigator.pop(context);
-                      context.go(RouteNames.chatbot);
+                      context.go(isRT ? RouteNames.rtKnowledge : RouteNames.chatbot);
                     },
                   ),
                 ],

@@ -816,18 +816,8 @@ def search_knowledge_base(
                             res['answer'] = answer_llm
                             res['citation'] = citation
                             res['ai_generated'] = used_llm
-                            if not used_llm and is_gemini_configured():
-                                res['is_escalated'] = True
-                                summary_text = build_escalation_summary(citizen_query, query_efektif=clean_query, history=clean_history)
-                                res['escalation_whatsapp_url'] = _whatsapp_url(summary_text)
-                                res['escalation_summary'] = summary_text
                         else:
                             res['ai_generated'] = False
-                            if is_gemini_configured():
-                                res['is_escalated'] = True
-                                summary_text = build_escalation_summary(citizen_query, query_efektif=clean_query, history=clean_history)
-                                res['escalation_whatsapp_url'] = _whatsapp_url(summary_text)
-                                res['escalation_summary'] = summary_text
                     return res
                 else:
                     semantic_status = 'below_threshold'
@@ -876,17 +866,7 @@ def search_knowledge_base(
                 res['answer'] = answer_llm
                 res['citation'] = citation
                 res['ai_generated'] = used_llm
-                if not used_llm and is_gemini_configured():
-                    res['is_escalated'] = True
-                    summary_text = build_escalation_summary(citizen_query, query_efektif=clean_query, history=clean_history)
-                    res['escalation_whatsapp_url'] = _whatsapp_url(summary_text)
-                    res['escalation_summary'] = summary_text
             else:
                 res['ai_generated'] = False
-                if is_gemini_configured():
-                    res['is_escalated'] = True
-                    summary_text = build_escalation_summary(citizen_query, query_efektif=clean_query, history=clean_history)
-                    res['escalation_whatsapp_url'] = _whatsapp_url(summary_text)
-                    res['escalation_summary'] = summary_text
 
     return res

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -99,6 +100,7 @@ class RTHomeScreen extends ConsumerWidget {
                   Stack(
                     children: [
                       IconButton(
+                        tooltip: 'Notifikasi',
                         icon: const Icon(
                           Icons.notifications_outlined,
                           color: AppColors.textPrimary,
@@ -234,7 +236,30 @@ class RTHomeScreen extends ConsumerWidget {
                     ),
                     child: const Center(child: CircularProgressIndicator()),
                   ),
-                  error: (e, _) => Text('Error: $e'),
+                  error: (e, _) => Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.error),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            formatErrorMessage(e, 'Gagal memuat ringkasan antrean'),
+                            style: AppTypography.bodySmall,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => ref.invalidate(incomingQueueProvider),
+                          child: const Text('Muat Ulang'),
+                        ),
+                      ],
+                    ),
+                  ),
                   data: (queue) {
                     final totalDiajukan = queue
                         .where((q) =>
@@ -326,7 +351,30 @@ class RTHomeScreen extends ConsumerWidget {
                 // Recent Pending Cards Feed
                 queueAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Text('Error: $e'),
+                  error: (e, _) => Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.error),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            formatErrorMessage(e, 'Gagal memuat ringkasan antrean'),
+                            style: AppTypography.bodySmall,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => ref.invalidate(incomingQueueProvider),
+                          child: const Text('Muat Ulang'),
+                        ),
+                      ],
+                    ),
+                  ),
                   data: (queue) {
                     final pending = queue
                         .where((q) =>
@@ -375,7 +423,9 @@ class RTHomeScreen extends ConsumerWidget {
                       children: pending.take(3).map((item) {
                         final id = item['pengajuan_id'] as int? ?? 0;
                         final namaWarga =
-                            item['nama_warga']?.toString() ?? 'Warga RT 04';
+                            item['nama_lengkap']?.toString() ??
+                            item['nama_warga']?.toString() ??
+                            'Warga RT 04';
                         final nik = item['nik']?.toString() ?? '-';
                         final namaSurat =
                             item['nama_surat']?.toString() ?? 'Surat Pengantar';
@@ -427,10 +477,10 @@ class RTHomeScreen extends ConsumerWidget {
                   context,
                   title: 'TanyaRT — Basis Informasi Lingkungan',
                   subtitle:
-                      'Periksa kebijakan RT, SOP layanan, dan data warga terpadu.',
+                      'Kelola dokumen kebijakan RT, SOP layanan, dan referensi TanyaRT.',
                   icon: Icons.smart_toy_rounded,
                   iconColor: const Color(0xFF6366F1),
-                  onTap: () => context.go(RouteNames.chatbot),
+                  onTap: () => context.go(RouteNames.rtKnowledge),
                 ),
                 const SizedBox(height: 40),
               ],

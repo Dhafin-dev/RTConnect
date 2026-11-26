@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/app_exception.dart';
 import '../data/chatbot_repository.dart';
 
 class ChatMessage {
@@ -108,7 +109,7 @@ class ChatbotController extends StateNotifier<ChatState> {
     } catch (e) {
       final botMsg = ChatMessage(
         sender: 'bot',
-        text: 'Maaf, terjadi kendala saat menghubungi layanan Tanya RT: $e',
+        text: 'Maaf, terjadi kendala saat menghubungi layanan Tanya RT: ${formatErrorMessage(e)}',
       );
       state = state.copyWith(
         messages: [...state.messages, botMsg],

@@ -98,6 +98,7 @@ class WargaHomeScreen extends ConsumerWidget {
                   Stack(
                     children: [
                       IconButton(
+                        tooltip: 'Notifikasi',
                         icon: const Icon(
                           Icons.notifications_outlined,
                           color: AppColors.textPrimary,

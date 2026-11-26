@@ -42,6 +42,10 @@ class PushNotificationService {
   /// Inisialisasi Firebase Core, Foreground & Background Notification Handlers
   static Future<void> initialize() async {
     if (_isInitialized) return;
+    if (kIsWeb) {
+      debugPrint('[FCM] PushNotificationService web dilewati (tidak ada konfigurasi Firebase Web).');
+      return;
+    }
 
     try {
       await Firebase.initializeApp();

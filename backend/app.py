@@ -4,7 +4,7 @@ import sys
 # Ensure backend directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
 from config import Config
@@ -23,6 +23,15 @@ def create_app():
 
     cors_origins = ["*"] if not Config.IS_PRODUCTION else Config.CORS_ORIGINS
     CORS(app, resources={r"/api/*": {"origins": cors_origins}})
+
+    @app.after_request
+    def apply_security_headers(response):
+        response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+        response.headers.setdefault('X-Frame-Options', 'DENY')
+        response.headers.setdefault('Referrer-Policy', 'no-referrer')
+        if request.path.startswith('/api/v1/auth/') and response.mimetype == 'application/json':
+            response.headers['Cache-Control'] = 'no-store'
+        return response
 
     if Config.STORAGE_BACKEND == 'local':
         for folder in [Config.UPLOAD_FOLDER, Config.SIGNATURES_FOLDER, Config.ATTACHMENTS_FOLDER, Config.LETTERS_FOLDER]:

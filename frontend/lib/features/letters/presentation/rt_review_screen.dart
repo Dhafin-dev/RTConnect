@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -47,6 +48,7 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Kembali',
           icon: const Icon(
             Icons.arrow_back_ios_new,
             color: AppColors.textPrimary,
@@ -143,8 +145,11 @@ class _RTReviewScreenState extends ConsumerState<RTReviewScreen> {
                         color: AppColors.error,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Text('Gagal memuat antrean: $err',
-                          style: AppTypography.bodySmall),
+                      Text(
+                        'Gagal memuat antrean: ${formatErrorMessage(err)}',
+                        style: AppTypography.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
                       TextButton(
                         onPressed: () => ref.refresh(incomingQueueProvider),
                         child: const Text('Muat Ulang'),

@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/errors/app_exception.dart';
@@ -35,7 +37,10 @@ class AuthRepository {
     await _storage.write(key: AppConstants.keyUserRole, value: user.role);
     await _storage.write(key: AppConstants.keyUserId, value: user.id.toString());
     await _storage.write(key: AppConstants.keyUserName, value: user.namaLengkap);
-    await _storage.write(key: AppConstants.keyUserNik, value: user.nik);
+    // Hindari menyimpan PII NIK ke localStorage browser (SEC-05)
+    if (!kIsWeb) {
+      await _storage.write(key: AppConstants.keyUserNik, value: user.nik);
+    }
 
     // Sinkronisasi device token untuk push notification FCM
     try {
@@ -53,9 +58,24 @@ class AuthRepository {
     required String nomorTelepon,
     required String alamat,
     String? signaturePath,
+    PlatformFile? signatureFile,
   }) async {
     dynamic payload;
-    if (signaturePath != null && signaturePath.isNotEmpty) {
+    if (signatureFile != null && (signatureFile.bytes != null || signatureFile.path != null)) {
+      final filename = signatureFile.name.isNotEmpty ? signatureFile.name : 'signature_$nik.png';
+      final multipart = signatureFile.bytes != null
+          ? MultipartFile.fromBytes(signatureFile.bytes!, filename: filename)
+          : await MultipartFile.fromFile(signatureFile.path!, filename: filename);
+      payload = FormData.fromMap({
+        'nik': nik,
+        'nama_lengkap': namaLengkap,
+        'email': email,
+        'password': password,
+        'nomor_telepon': nomorTelepon,
+        'alamat': alamat,
+        'tanda_tangan': multipart,
+      });
+    } else if (signaturePath != null && signaturePath.isNotEmpty) {
       payload = FormData.fromMap({
         'nik': nik,
         'nama_lengkap': namaLengkap,

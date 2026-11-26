@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../data/profile_repository.dart';
 
@@ -106,7 +107,7 @@ class ProfileController extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: formatErrorMessage(e, 'Gagal memperbarui profil.'),
       );
       return false;
     }
@@ -141,7 +142,7 @@ class ProfileController extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: formatErrorMessage(e, 'Gagal memperbarui profil.'),
       );
       return false;
     }
@@ -171,7 +172,7 @@ class ProfileController extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isAvatarLoading: false,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: formatErrorMessage(e, 'Gagal memperbarui foto profil.'),
       );
       return false;
     }
@@ -186,7 +187,7 @@ class ProfileController extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: formatErrorMessage(e, 'Gagal memuat profil.'),
       );
     }
   }

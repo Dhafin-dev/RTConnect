@@ -28,7 +28,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _alamatController = TextEditingController();
 
-  String? _selectedSignaturePath;
+  PlatformFile? _selectedSignatureFile;
   String? _signatureFileName;
 
   final _confirmPasswordController = TextEditingController();
@@ -49,12 +49,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['png', 'jpg', 'jpeg'],
+      withData: true,
     );
 
-    if (result != null && result.files.single.path != null) {
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.single;
+      if (file.size > 8 * 1024 * 1024) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: AppColors.error,
+              content: Text('Ukuran file tanda tangan maksimal 8 MB'),
+            ),
+          );
+        }
+        return;
+      }
       setState(() {
-        _selectedSignaturePath = result.files.single.path;
-        _signatureFileName = result.files.single.name;
+        _selectedSignatureFile = file;
+        _signatureFileName = file.name;
       });
     }
   }
@@ -79,7 +92,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       password: _passwordController.text.trim(),
       nomorTelepon: _phoneController.text.trim(),
       alamat: _alamatController.text.trim(),
-      signaturePath: _selectedSignaturePath,
+      signatureFile: _selectedSignatureFile,
     );
 
     if (mounted) {
